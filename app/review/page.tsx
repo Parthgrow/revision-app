@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 
 type Item = {
@@ -19,13 +18,10 @@ const RATINGS = [
 ]
 
 export default function ReviewPage() {
-  const router = useRouter()
   const [items, setItems] = useState<Item[]>([])
-  const [index, setIndex] = useState(0)
-  const [revealed, setRevealed] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const [sessionCount, setSessionCount] = useState(0)
 
   useEffect(() => {
     fetch('/api/items/due')
@@ -36,19 +32,21 @@ export default function ReviewPage() {
       })
   }, [])
 
-  async function handleRating(value: number) {
+  async function handleRating(itemId: string, value: number) {
     if (submitting) return
     setSubmitting(true)
-    const item = items[index]
-    await fetch(`/api/items/${item.id}`, {
+    await fetch(`/api/items/${itemId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ rating: value }),
     })
-    setSessionCount((c) => c + 1)
+    setItems((prev) => prev.filter((i) => i.id !== itemId))
+    setExpandedId(null)
     setSubmitting(false)
-    setRevealed(false)
-    setIndex((i) => i + 1)
+  }
+
+  function toggleExpand(id: string) {
+    setExpandedId((prev) => (prev === id ? null : id))
   }
 
   if (loading) {
@@ -64,89 +62,94 @@ export default function ReviewPage() {
     )
   }
 
-  if (index >= items.length) {
-    return (
-      <div className="min-h-screen bg-[var(--bg)]">
-        <Nav />
-        <div className="flex flex-col items-center justify-center gap-4 px-10" style={{ minHeight: 'calc(100vh - 65px)' }}>
-          <div className="font-serif text-[32px] text-[var(--accent)] opacity-60 mb-2">✦</div>
-          <h2 className="font-serif text-[36px] font-light text-[var(--text-primary)] tracking-[0.06em]">
-            Session complete
-          </h2>
-          <p className="text-[13px] text-[var(--text-muted)] tracking-[0.1em]">
-            {sessionCount} item{sessionCount !== 1 ? 's' : ''} reviewed
-          </p>
-          <button
-            onClick={() => router.push('/')}
-            className="mt-4 bg-transparent border border-[var(--accent-dim)] text-[var(--accent)] px-8 py-3 text-[11px] tracking-[0.18em] uppercase cursor-pointer transition-colors duration-200 hover:bg-[var(--accent-glow)]"
-          >
-            Return to the palace
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  const item = items[index]
-  const progress = (index / items.length) * 100
-
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Nav />
-      <div className="max-w-[620px] mx-auto px-10 py-16 flex flex-col gap-10">
+      <main className="max-w-[680px] mx-auto px-10 py-16 flex flex-col gap-8">
 
-        <div className="flex flex-col gap-2">
-          <div className="w-full h-px bg-[var(--border)]">
-            <div
-              className="h-full bg-[var(--accent-dim)] transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
-          <div className="text-[11px] tracking-[0.14em] text-[var(--text-muted)] text-right">
-            {index + 1} / {items.length}
-          </div>
+        <div className="flex items-baseline justify-between">
+          <h1 className="font-serif text-[36px] font-light tracking-[0.04em] text-[var(--text-primary)]">
+            Due today
+          </h1>
+          <span className="text-[11px] tracking-[0.14em] uppercase text-[var(--text-muted)]">
+            {items.length} remaining
+          </span>
         </div>
 
-        <div
-          onClick={() => !revealed && setRevealed(true)}
-          className={`bg-[var(--bg-card)] border px-12 py-16 min-h-[220px] flex flex-col items-center justify-center gap-6 transition-colors duration-200 ${
-            revealed
-              ? 'border-[var(--accent-dim)] cursor-default'
-              : 'border-[var(--border)] cursor-pointer hover:border-[var(--border-light)]'
-          }`}
-        >
-          <div className="font-serif text-[26px] font-light text-[var(--text-primary)] leading-[1.5] text-center tracking-[0.02em]">
-            {item.content}
-          </div>
-          {!revealed && (
-            <div className="text-[10px] tracking-[0.18em] uppercase text-[var(--text-muted)] opacity-60">
-              Click to mark as recalled
-            </div>
-          )}
-        </div>
-
-        {revealed && (
-          <div className="flex flex-col gap-4">
-            <p className="text-[11px] tracking-[0.14em] uppercase text-[var(--text-muted)] text-center">
-              How well did you recall it?
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center gap-4 py-20 text-center">
+            <div className="font-serif text-[32px] text-[var(--text-muted)] opacity-40">✦</div>
+            <p className="text-sm text-[var(--text-muted)] tracking-[0.04em]">
+              The palace is still. Nothing due today.
             </p>
-            <div className="grid grid-cols-4 gap-2">
-              {RATINGS.map((r) => (
-                <button
-                  key={r.value}
-                  onClick={() => handleRating(r.value)}
-                  disabled={submitting}
-                  style={{ '--hover-border': r.hoverBorder } as React.CSSProperties}
-                  className="bg-[var(--bg-card)] border border-[var(--border)] py-4 px-2 flex flex-col items-center gap-1.5 cursor-pointer transition-colors duration-200 hover:bg-[var(--bg-elevated)] hover:border-[var(--hover-border)] disabled:opacity-50 disabled:cursor-default"
-                >
-                  <span className="text-[12px] tracking-[0.1em] text-[var(--text-primary)]">{r.label}</span>
-                  <span className="text-[10px] text-[var(--text-muted)] text-center leading-[1.4]">{r.desc}</span>
-                </button>
-              ))}
-            </div>
+          </div>
+        ) : (
+          <div
+            className="flex flex-col"
+            style={{ gap: '1px', background: 'var(--border)', border: '1px solid var(--border)' }}
+          >
+            {items.map((item) => {
+              const isOpen = expandedId === item.id
+              return (
+                <div key={item.id} className="flex flex-col" style={{ background: 'var(--bg-card)' }}>
+                  <button
+                    onClick={() => toggleExpand(item.id)}
+                    className="w-full text-left px-6 py-5 flex items-center justify-between gap-4 border-none cursor-pointer transition-colors duration-150"
+                    style={{ background: isOpen ? 'var(--bg-elevated)' : 'var(--bg-card)' }}
+                    onMouseEnter={(e) => { if (!isOpen) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-elevated)' }}
+                    onMouseLeave={(e) => { if (!isOpen) (e.currentTarget as HTMLButtonElement).style.background = 'var(--bg-card)' }}
+                  >
+                    <span className="font-serif text-[18px] font-light text-[var(--text-primary)] leading-[1.5] tracking-[0.01em]">
+                      {item.content}
+                    </span>
+                    <span
+                      className="text-[var(--text-muted)] text-[12px] shrink-0 transition-transform duration-200"
+                      style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
+                    >
+                      ↓
+                    </span>
+                  </button>
+
+                  {isOpen && (
+                    <div
+                      className="px-6 pb-5 flex flex-col gap-4"
+                      style={{ borderTop: '1px solid var(--border)' }}
+                    >
+                      <p className="text-[11px] tracking-[0.14em] uppercase text-[var(--text-muted)] pt-4">
+                        How well did you recall it?
+                      </p>
+                      <div className="grid grid-cols-4 gap-2">
+                        {RATINGS.map((r) => (
+                          <button
+                            key={r.value}
+                            onClick={() => handleRating(item.id, r.value)}
+                            disabled={submitting}
+                            className="py-4 px-2 flex flex-col items-center gap-1.5 cursor-pointer transition-colors duration-200 disabled:opacity-50 disabled:cursor-default"
+                            style={{ background: 'var(--bg)', border: '1px solid var(--border)' }}
+                            onMouseEnter={(e) => {
+                              const el = e.currentTarget as HTMLButtonElement
+                              el.style.background = 'var(--bg-elevated)'
+                              el.style.borderColor = r.hoverBorder
+                            }}
+                            onMouseLeave={(e) => {
+                              const el = e.currentTarget as HTMLButtonElement
+                              el.style.background = 'var(--bg)'
+                              el.style.borderColor = 'var(--border)'
+                            }}
+                          >
+                            <span className="text-[12px] tracking-[0.1em] text-[var(--text-primary)]">{r.label}</span>
+                            <span className="text-[10px] text-[var(--text-muted)] text-center leading-[1.4]">{r.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
           </div>
         )}
-      </div>
+      </main>
     </div>
   )
 }
