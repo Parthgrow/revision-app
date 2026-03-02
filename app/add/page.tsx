@@ -19,7 +19,7 @@ export default function AddPage() {
     if (res.ok) {
       setContent('')
       setStatus('saved')
-      setTimeout(() => setStatus('idle'), 2000)
+      setTimeout(() => setStatus('idle'), 2500)
     } else {
       setStatus('error')
     }
@@ -28,38 +28,55 @@ export default function AddPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)]">
       <Nav />
-      <main className="max-w-[600px] mx-auto px-10 py-20 flex flex-col gap-10">
-        <div className="flex flex-col gap-2">
-          <h1 className="font-serif text-[36px] font-light tracking-[0.04em] text-[var(--text-primary)]">
-            Add to the palace
+      <main className="max-w-[600px] mx-auto px-10 py-20 flex flex-col gap-12">
+
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-[2px] bg-[var(--accent)]" />
+            <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-[var(--text-muted)]">
+              New Item
+            </span>
+          </div>
+          <h1 className="font-serif text-[42px] leading-[1.1] text-[var(--text-primary)]">
+            What do you want<br />to remember?
           </h1>
-          <p className="text-[13px] text-[var(--text-muted)] tracking-[0.06em]">
-            What do you want to remember?
-          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            className="font-serif bg-[var(--bg-card)] border border-[var(--border)] text-[var(--text-primary)] p-6 text-[20px] font-light leading-[1.7] tracking-[0.02em] outline-none resize-y w-full transition-colors duration-200 focus:border-[var(--accent-dim)] placeholder:text-[var(--text-muted)] placeholder:italic"
+            className="font-serif bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text-primary)] p-6 text-[20px] leading-[1.7] outline-none resize-y w-full transition-colors duration-150 focus:border-[var(--accent)] placeholder:text-[var(--text-muted)] placeholder:italic"
             placeholder="Enter something to memorize..."
             rows={6}
             required
           />
+
           <div className="flex items-center justify-between">
-            {status === 'saved' && (
-              <span className="text-[12px] tracking-[0.12em] text-[var(--accent-dim)]">✦ Committed to memory</span>
-            )}
-            {status === 'error' && (
-              <span className="text-[12px] text-[#b07070]">Something went wrong</span>
-            )}
+            <div>
+              {status === 'saved' && (
+                <span className="text-[12px] font-medium text-[#16a34a] flex items-center gap-1.5">
+                  <span>✓</span> Saved to your palace
+                </span>
+              )}
+              {status === 'error' && (
+                <span className="text-[12px] font-medium text-[var(--accent)]">
+                  Something went wrong
+                </span>
+              )}
+            </div>
             <button
               type="submit"
               disabled={status === 'saving' || !content.trim()}
-              className="ml-auto bg-transparent border border-[var(--accent-dim)] text-[var(--accent)] px-7 py-3 text-[11px] tracking-[0.18em] uppercase cursor-pointer transition-colors duration-200 hover:bg-[var(--accent-glow)] hover:border-[var(--accent)] disabled:opacity-40 disabled:cursor-default"
+              className="px-8 py-3 text-[12px] font-semibold tracking-[0.08em] uppercase cursor-pointer transition-colors duration-150 border-none disabled:opacity-40 disabled:cursor-default"
+              style={{ background: 'var(--accent)', color: '#ffffff' }}
+              onMouseEnter={(e) => {
+                const el = e.currentTarget as HTMLButtonElement
+                if (!el.disabled) el.style.background = 'var(--accent-hover)'
+              }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent)' }}
             >
-              {status === 'saving' ? 'Storing...' : 'Store in palace'}
+              {status === 'saving' ? 'Saving...' : 'Add to palace'}
             </button>
           </div>
         </form>

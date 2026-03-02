@@ -14,28 +14,31 @@ export default function Nav() {
 
   const links = [
     { href: '/', label: 'Home' },
-    { href: '/review', label: 'Review' },
     { href: '/add', label: 'Add' },
     { href: '/browse', label: 'Browse' },
   ]
 
   return (
-    <nav className="flex items-center justify-between px-10 py-5 border-b border-[var(--border)] bg-[var(--bg)]">
+    <nav className="flex items-center justify-between px-10 py-4 border-b border-[var(--border)] bg-[var(--bg)]">
       <Link
         href="/"
-        className="font-serif text-[22px] font-light tracking-[0.12em] text-[var(--text-primary)] no-underline"
+        className="font-serif text-[20px] text-[var(--text-primary)] no-underline flex items-center gap-2.5"
       >
+        <span
+          className="w-2 h-2 rounded-full inline-block"
+          style={{ background: 'var(--accent)' }}
+        />
         Loci
       </Link>
-      <div className="flex items-center gap-8">
+      <div className="flex items-center gap-7">
         {links.map((l) => (
           <Link
             key={l.href}
             href={l.href}
-            className={`text-[11px] tracking-[0.16em] uppercase no-underline transition-colors duration-200 ${
+            className={`text-[12px] font-medium tracking-[0.08em] uppercase no-underline transition-colors duration-150 ${
               pathname === l.href
                 ? 'text-[var(--accent)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--accent)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
             }`}
           >
             {l.label}
@@ -43,9 +46,9 @@ export default function Nav() {
         ))}
         <button
           onClick={logout}
-          className="text-[11px] tracking-[0.16em] uppercase text-[var(--text-muted)] bg-transparent border-none cursor-pointer font-sans transition-colors duration-200 hover:text-[#b07070]"
+          className="text-[12px] font-medium tracking-[0.08em] uppercase text-[var(--text-muted)] bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-[var(--accent)]"
         >
-          Leave
+          Sign out
         </button>
       </div>
     </nav>
