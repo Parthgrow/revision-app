@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Loci — Spaced Repetition',
-  description: 'A memory palace for your mind',
+  title: 'MindGym — Spaced Repetition',
+  description: 'Train your memory with MindGym',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

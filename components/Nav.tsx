@@ -14,7 +14,6 @@ export default function Nav() {
 
   const links = [
     { href: '/', label: 'Home' },
-    { href: '/add', label: 'Add' },
     { href: '/browse', label: 'Browse' },
   ]
 
@@ -28,7 +27,7 @@ export default function Nav() {
           className="w-2 h-2 rounded-full inline-block"
           style={{ background: 'var(--accent)' }}
         />
-        Loci
+        MindGym
       </Link>
       <div className="flex items-center gap-7">
         {links.map((l) => (

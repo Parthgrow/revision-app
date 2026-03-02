@@ -53,16 +53,24 @@ export default function HomeClient({ dueItems, totalCount, streak }: Props) {
     <main className="max-w-[580px] mx-auto px-10 py-20 flex flex-col gap-14">
 
       {/* Header */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-[2px] bg-[var(--accent)]" />
-          <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-[var(--text-muted)]">
-            Dashboard
-          </span>
+      <div className="flex items-end justify-between">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-[2px] bg-[var(--accent)]" />
+            <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-[var(--text-muted)]">
+              Dashboard
+            </span>
+          </div>
+          <h1 className="font-serif text-[48px] leading-[1.1] text-[var(--text-primary)]">
+            Welcome back.
+          </h1>
         </div>
-        <h1 className="font-serif text-[48px] leading-[1.1] text-[var(--text-primary)]">
-          Welcome back.
-        </h1>
+        <Link
+          href="/add"
+          className="w-11 h-11 flex items-center justify-center border border-[var(--border)] text-[var(--text-muted)] no-underline text-[22px] leading-none transition-all duration-150 hover:border-[var(--accent)] hover:text-[var(--accent)] mb-1"
+        >
+          +
+        </Link>
       </div>
 
       {/* Stats */}

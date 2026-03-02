@@ -1,27 +1,29 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 
 export default function AddPage() {
+  const router = useRouter()
   const [content, setContent] = useState('')
-  const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!content.trim()) return
-    setStatus('saving')
+    setSaving(true)
     const res = await fetch('/api/items', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: content.trim() }),
     })
     if (res.ok) {
-      setContent('')
-      setStatus('saved')
-      setTimeout(() => setStatus('idle'), 2500)
+      router.push('/')
     } else {
-      setStatus('error')
+      setError(true)
+      setSaving(false)
     }
   }
 
@@ -45,7 +47,7 @@ export default function AddPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <textarea
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => { setContent(e.target.value); setError(false) }}
             className="font-serif bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text-primary)] p-6 text-[20px] leading-[1.7] outline-none resize-y w-full transition-colors duration-150 focus:border-[var(--accent)] placeholder:text-[var(--text-muted)] placeholder:italic"
             placeholder="Enter something to memorize..."
             rows={6}
@@ -54,12 +56,7 @@ export default function AddPage() {
 
           <div className="flex items-center justify-between">
             <div>
-              {status === 'saved' && (
-                <span className="text-[12px] font-medium text-[#16a34a] flex items-center gap-1.5">
-                  <span>✓</span> Saved to your palace
-                </span>
-              )}
-              {status === 'error' && (
+              {error && (
                 <span className="text-[12px] font-medium text-[var(--accent)]">
                   Something went wrong
                 </span>
@@ -67,7 +64,7 @@ export default function AddPage() {
             </div>
             <button
               type="submit"
-              disabled={status === 'saving' || !content.trim()}
+              disabled={saving || !content.trim()}
               className="px-8 py-3 text-[12px] font-semibold tracking-[0.08em] uppercase cursor-pointer transition-colors duration-150 border-none disabled:opacity-40 disabled:cursor-default"
               style={{ background: 'var(--accent)', color: '#ffffff' }}
               onMouseEnter={(e) => {
@@ -76,7 +73,7 @@ export default function AddPage() {
               }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent)' }}
             >
-              {status === 'saving' ? 'Saving...' : 'Add to palace'}
+              {saving ? 'Saving...' : 'Add to palace'}
             </button>
           </div>
         </form>

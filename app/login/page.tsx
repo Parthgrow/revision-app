@@ -36,7 +36,7 @@ export default function LoginPage() {
         className="hidden lg:flex w-[380px] shrink-0 flex-col justify-between p-12"
         style={{ background: 'var(--accent)' }}
       >
-        <span className="font-serif text-[22px] text-white">Loci</span>
+        <span className="font-serif text-[22px] text-white">MindGym</span>
         <div className="flex flex-col gap-4">
           <p className="font-serif text-[32px] text-white leading-[1.2]">
             Memory is a palace. You hold the key.
@@ -46,7 +46,7 @@ export default function LoginPage() {
           </p>
         </div>
         <p className="text-white/30 text-[11px] tracking-[0.08em] uppercase">
-          Loci · Memory System
+          MindGym · Memory System
         </p>
       </div>
 
@@ -57,7 +57,7 @@ export default function LoginPage() {
           {/* Mobile brand */}
           <div className="lg:hidden flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-[var(--accent)]" />
-            <span className="font-serif text-[20px] text-[var(--text-primary)]">Loci</span>
+            <span className="font-serif text-[20px] text-[var(--text-primary)]">MindGym</span>
           </div>
 
           <div className="flex flex-col gap-2">
