@@ -15,13 +15,14 @@ export default function Nav() {
   const links = [
     { href: '/', label: 'Home' },
     { href: '/browse', label: 'Browse' },
+    { href: '/mp', label: 'mp' },
   ]
 
   return (
-    <nav className="flex items-center justify-between px-10 py-4 border-b border-[var(--border)] bg-[var(--bg)]">
+    <nav className="flex items-center justify-between px-10 py-4 border-b border-(--border) bg-(--bg)">
       <Link
         href="/"
-        className="font-serif text-[20px] text-[var(--text-primary)] no-underline flex items-center gap-2.5"
+        className="font-serif text-[20px] text-(--text-primary) no-underline flex items-center gap-2.5"
       >
         <span
           className="w-2 h-2 rounded-full inline-block"
@@ -35,9 +36,7 @@ export default function Nav() {
             key={l.href}
             href={l.href}
             className={`text-[12px] font-medium tracking-[0.08em] uppercase no-underline transition-colors duration-150 ${
-              pathname === l.href
-                ? 'text-[var(--accent)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              pathname === l.href ? 'text-(--accent)' : 'text-(--text-muted) hover:text-(--text-primary)'
             }`}
           >
             {l.label}
@@ -45,7 +44,7 @@ export default function Nav() {
         ))}
         <button
           onClick={logout}
-          className="text-[12px] font-medium tracking-[0.08em] uppercase text-[var(--text-muted)] bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-[var(--accent)]"
+          className="text-[12px] font-medium tracking-[0.08em] uppercase text-(--text-muted) bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-(--accent)"
         >
           Sign out
         </button>

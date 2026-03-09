@@ -20,6 +20,17 @@ export type Item = {
   dueDate: number
 }
 
+export type MpStatus = 'prep' | 'memorize' | 'add-revision'
+
+export type MpItem = {
+  id: string
+  userId: string
+  content: string
+  status: MpStatus
+  createdAt: number
+  updatedAt: number
+}
+
 // --- User ---
 
 export async function getUserByEmail(email: string): Promise<User | null> {
@@ -80,6 +91,57 @@ export async function reviewItem(userId: string, itemId: string, rating: Rating)
 export async function deleteItem(userId: string, itemId: string): Promise<void> {
   await kv.del(`item:${userId}:${itemId}`)
   await kv.srem(`user:${userId}:items`, itemId)
+}
+
+// --- Memory Palace items ---
+
+export async function createMpItem(
+  userId: string,
+  content: string,
+  status: MpStatus = 'prep'
+): Promise<MpItem> {
+  const id = nanoid()
+  const now = Date.now()
+  const item: MpItem = {
+    id,
+    userId,
+    content,
+    status,
+    createdAt: now,
+    updatedAt: now,
+  }
+  await kv.set(`mp:${userId}:${id}`, item)
+  await kv.sadd(`user:${userId}:mp-items`, id)
+  return item
+}
+
+export async function getAllMpItems(userId: string): Promise<MpItem[]> {
+  const ids = await kv.smembers<string[]>(`user:${userId}:mp-items`)
+  if (!ids || ids.length === 0) return []
+  const keys = ids.map((id) => `mp:${userId}:${id}`)
+  const items = await kv.mget<MpItem[]>(...keys)
+  return items.filter(Boolean) as MpItem[]
+}
+
+export async function updateMpItemStatus(
+  userId: string,
+  itemId: string,
+  status: MpStatus
+): Promise<MpItem | null> {
+  const item = await kv.get<MpItem>(`mp:${userId}:${itemId}`)
+  if (!item) return null
+  const updated: MpItem = {
+    ...item,
+    status,
+    updatedAt: Date.now(),
+  }
+  await kv.set(`mp:${userId}:${itemId}`, updated)
+  return updated
+}
+
+export async function deleteMpItem(userId: string, itemId: string): Promise<void> {
+  await kv.del(`mp:${userId}:${itemId}`)
+  await kv.srem(`user:${userId}:mp-items`, itemId)
 }
 
 // --- Streak ---
