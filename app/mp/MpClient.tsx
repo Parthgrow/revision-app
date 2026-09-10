@@ -97,28 +97,13 @@ export default function MpClient({ initialItems }: Props) {
   }
 
   return (
-    <main className="max-w-[700px] mx-auto px-12 py-16 flex flex-col gap-10">
-      <div className="flex items-end justify-between border-b border-(--border) pb-5">
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-[2px] bg-(--accent)" />
-            <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-(--text-muted)">
-              Memory Palace
-            </span>
-          </div>
-          <h1 className="font-serif text-[38px] leading-tight text-(--text-primary)">
-            One Memory Palace A Day
-          </h1>
-          <p className="text-[13px] text-(--text-muted) max-w-[460px]">
-            Keeps your mind active and engaged.
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-3 pb-1">
-          <span className="font-serif text-[36px] leading-none" style={{ color: 'var(--accent)' }}>
-            {items.length}
-          </span>
-          <span className="text-[10px] font-medium tracking-[0.12em] uppercase text-(--text-muted)">
-            entry{items.length !== 1 ? 'ies' : ''}
+    <main className="flex-1 w-full max-w-[860px] mx-auto px-6 sm:px-10 py-8 sm:py-12 flex flex-col">
+
+      <header className="flex items-baseline justify-between gap-4 border-b border-[var(--rule-ink)] pb-2">
+        <h1 className="text-[20px] font-semibold tracking-[-0.01em]">Palace</h1>
+        <div className="flex items-baseline gap-4">
+          <span className="text-[14px] text-[var(--ink-2)]">
+            {items.length} {items.length === 1 ? 'entry' : 'entries'}
           </span>
           <button
             type="button"
@@ -128,21 +113,22 @@ export default function MpClient({ initialItems }: Props) {
               setError(null)
               setIsModalOpen(true)
             }}
-            className="mt-1 w-10 h-10 flex items-center justify-center border border-(--border) rounded-full text-(--text-muted) text-[20px] cursor-pointer transition-colors duration-150 hover:border-(--accent) hover:text-(--accent)"
-            aria-label="Add memory palace entry"
+            className="text-[14px] text-[var(--ink)] bg-transparent border-none cursor-pointer underline underline-offset-4 decoration-[var(--rule)] hover:decoration-[var(--ink)] transition-colors duration-150"
           >
-            +
+            New entry
           </button>
         </div>
-      </div>
+      </header>
+
+      <p className="smallcaps pt-2">One memory palace a day</p>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-md rounded-2xl border border-(--border) bg-(--bg) p-6 shadow-xl">
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(33,31,28,0.28)] px-4">
+          <div className="w-full max-w-md border border-[var(--rule)] bg-[var(--paper)] p-6 shadow-[0_18px_40px_-24px_rgba(33,31,28,0.5)]">
             <div className="flex items-start justify-between gap-4 mb-4">
               <div className="flex flex-col gap-1">
-                <h2 className="font-serif text-[22px] text-(--text-primary)">New memory</h2>
-                <p className="text-[12px] text-(--text-muted)">
+                <h2 className="text-[18px] font-semibold">New memory</h2>
+                <p className="text-[14px] text-[var(--ink-3)]">
                   Describe the image, room, or association you want to capture.
                 </p>
               </div>
@@ -154,7 +140,7 @@ export default function MpClient({ initialItems }: Props) {
                     setError(null)
                   }
                 }}
-                className="bg-transparent border-none text-(--text-muted) text-[16px] cursor-pointer px-1 py-1 hover:text-(--accent)"
+                className="bg-transparent border-none text-[var(--ink-4)] text-[15px] cursor-pointer px-1 py-1 transition-colors duration-150 hover:text-[var(--ink)]"
                 aria-label="Close"
               >
                 ✕
@@ -165,24 +151,22 @@ export default function MpClient({ initialItems }: Props) {
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 rows={4}
-                className="w-full text-[14px] bg-transparent border border-(--border) rounded-lg px-4 py-3 text-(--text-primary) outline-none resize-none focus:border-(--accent)"
+                className="w-full text-[15px] leading-relaxed bg-transparent border border-[var(--rule)] px-4 py-3 text-[var(--ink)] outline-none resize-none transition-colors duration-150 focus:border-[var(--ink-3)] placeholder:text-[var(--ink-4)]"
                 placeholder="A room, image, story, or association you want to remember..."
               />
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
                 <div className="flex items-center gap-3">
-                  <span className="text-[11px] font-medium tracking-[0.12em] uppercase text-(--text-muted)">
-                    Status
-                  </span>
-                  <div className="inline-flex rounded-full border border-(--border) bg-(--bg) overflow-hidden text-[11px]">
+                  <span className="smallcaps">Status</span>
+                  <div className="inline-flex border border-[var(--rule)] overflow-hidden text-[13px]">
                     {STATUS_LABELS.map((s) => (
                       <button
                         key={s.value}
                         type="button"
                         onClick={() => setStatus(s.value)}
-                        className={`px-4 py-1.5 cursor-pointer border-none outline-none transition-colors duration-150 ${
+                        className={`px-3 py-1 cursor-pointer border-none outline-none transition-colors duration-150 ${
                           status === s.value
-                            ? 'bg-(--accent) text-(--bg)'
-                            : 'bg-(--bg) text-(--text-muted) hover:text-(--text-primary)'
+                            ? 'bg-[var(--ink)] text-[var(--paper)]'
+                            : 'bg-transparent text-[var(--ink-3)] hover:text-[var(--ink)]'
                         }`}
                       >
                         {s.label}
@@ -193,65 +177,67 @@ export default function MpClient({ initialItems }: Props) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="ml-auto px-5 py-2 text-[11px] font-medium tracking-[0.14em] uppercase border border-(--border) rounded-full bg-(--bg) text-(--text-primary) cursor-pointer transition-colors duration-150 disabled:opacity-50 hover:border-(--accent) hover:text-(--accent)"
+                  className="ml-auto px-5 py-2 text-[14px] font-semibold border-none bg-[var(--ink)] text-[var(--paper)] cursor-pointer transition-opacity duration-150 hover:opacity-85 disabled:opacity-40"
                 >
                   {submitting ? 'Creating…' : 'Create'}
                 </button>
               </div>
-              {error && <p className="text-[12px] text-red-500">{error}</p>}
+              {error && <p className="text-[13px] text-[var(--ink-2)]">{error}</p>}
             </form>
           </div>
         </div>
       )}
 
       {items.length === 0 ? (
-        <p className="text-[14px] text-(--text-muted) py-8">
+        <p className="text-[16px] text-[var(--ink-3)] py-14">
           No rooms in your memory palace yet. Start by adding a single clear image or phrase.
         </p>
       ) : (
-        <section className="flex flex-col gap-px bg-(--border) border border-(--border) rounded-2xl overflow-hidden">
+        <div className="ledger flex flex-col pt-4">
+          <div className="grid grid-cols-[1fr_28px] sm:grid-cols-[1fr_220px_28px] gap-4 px-3 pb-1.5 border-b border-[var(--rule)]">
+            <span className="smallcaps">Entry</span>
+            <span className="smallcaps hidden sm:block">Status</span>
+            <span />
+          </div>
+
           {items.map((item) => (
             <div
               key={item.id}
-              className="bg-(--bg) px-8 py-5 flex flex-col gap-3 transition-colors duration-150 hover:bg-(--bg-card)"
+              className="row group grid grid-cols-[1fr_28px] sm:grid-cols-[1fr_220px_28px] gap-x-4 gap-y-2 px-3 py-2.5 items-baseline transition-colors duration-100"
             >
-              <div className="font-serif text-[17px] text-(--text-primary) leading-relaxed">
-                {item.content}
+              <span className="text-[15px] leading-snug">{item.content}</span>
+
+              <div className="col-span-2 sm:col-span-1 sm:col-start-2 inline-flex border border-[var(--rule)] overflow-hidden text-[12px] w-fit">
+                {STATUS_LABELS.map((s) => (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => handleStatusChange(item.id, s.value)}
+                    disabled={updatingId === item.id}
+                    className={`px-2.5 py-1 cursor-pointer border-none outline-none transition-colors duration-150 disabled:opacity-50 ${
+                      item.status === s.value
+                        ? 'bg-[var(--ink)] text-[var(--paper)]'
+                        : 'bg-transparent text-[var(--ink-3)] hover:text-[var(--ink)]'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
               </div>
-              <div className="flex items-center gap-3 text-[11px] text-(--text-muted) tracking-[0.04em]">
-                <span className="uppercase">Status</span>
-                <div className="inline-flex rounded-full border border-(--border) bg-(--bg) overflow-hidden ml-1">
-                  {STATUS_LABELS.map((s) => (
-                    <button
-                      key={s.value}
-                      type="button"
-                      onClick={() => handleStatusChange(item.id, s.value)}
-                      disabled={updatingId === item.id}
-                      className={`px-4 py-1.5 cursor-pointer border-none outline-none text-[11px] transition-colors duration-150 ${
-                        item.status === s.value
-                          ? 'bg-(--accent) text-(--bg)'
-                          : 'bg-(--bg) text-(--text-muted) hover:text-(--text-primary)'
-                      }`}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(item.id)}
-                  disabled={deletingId === item.id}
-                  className="ml-auto bg-transparent border-none text-(--text-muted) cursor-pointer text-[11px] opacity-40 transition-all duration-150 hover:opacity-100 hover:text-(--accent) px-1"
-                  aria-label="Delete entry"
-                >
-                  ✕
-                </button>
-              </div>
+
+              <button
+                type="button"
+                onClick={() => handleDelete(item.id)}
+                disabled={deletingId === item.id}
+                className="row-start-1 col-start-2 sm:col-start-3 justify-self-end text-[13px] text-[var(--ink-4)] bg-transparent border-none cursor-pointer opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity duration-150 hover:text-[var(--ink)]"
+                aria-label="Delete entry"
+              >
+                ✕
+              </button>
             </div>
           ))}
-        </section>
+        </div>
       )}
     </main>
   )
 }
-

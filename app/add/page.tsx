@@ -28,52 +28,39 @@ export default function AddPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="min-h-screen bg-[var(--paper)] flex flex-col sm:flex-row">
       <Nav />
-      <main className="max-w-[600px] mx-auto px-10 py-20 flex flex-col gap-12">
+      <main className="flex-1 w-full max-w-[680px] mx-auto px-6 sm:px-10 py-8 sm:py-12 flex flex-col gap-8">
 
-        <div className="flex flex-col gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-[2px] bg-[var(--accent)]" />
-            <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-[var(--text-muted)]">
-              New Item
-            </span>
-          </div>
-          <h1 className="font-serif text-[42px] leading-[1.1] text-[var(--text-primary)]">
-            What do you want<br />to remember?
-          </h1>
-        </div>
+        <header className="flex items-baseline justify-between gap-4 border-b border-[var(--rule-ink)] pb-2">
+          <h1 className="text-[20px] font-semibold tracking-[-0.01em]">New item</h1>
+          <span className="smallcaps">What do you want to remember?</span>
+        </header>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <textarea
             value={content}
             onChange={(e) => { setContent(e.target.value); setError(false) }}
-            className="font-serif bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text-primary)] p-6 text-[20px] leading-[1.7] outline-none resize-y w-full transition-colors duration-150 focus:border-[var(--accent)] placeholder:text-[var(--text-muted)] placeholder:italic"
-            placeholder="Enter something to memorize..."
-            rows={6}
+            className="bg-transparent border border-[var(--rule)] text-[var(--ink)] p-5 text-[18px] leading-[1.65] outline-none resize-y w-full transition-colors duration-150 focus:border-[var(--ink-3)] placeholder:text-[var(--ink-4)]"
+            placeholder="A fact, a phrase, an association…"
+            rows={7}
             required
           />
 
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-4">
             <div>
               {error && (
-                <span className="text-[12px] font-medium text-[var(--accent)]">
-                  Something went wrong
+                <span className="text-[14px] text-[var(--ink-2)]">
+                  Couldn&apos;t save that. Try again.
                 </span>
               )}
             </div>
             <button
               type="submit"
               disabled={saving || !content.trim()}
-              className="px-8 py-3 text-[12px] font-semibold tracking-[0.08em] uppercase cursor-pointer transition-colors duration-150 border-none disabled:opacity-40 disabled:cursor-default"
-              style={{ background: 'var(--accent)', color: '#ffffff' }}
-              onMouseEnter={(e) => {
-                const el = e.currentTarget as HTMLButtonElement
-                if (!el.disabled) el.style.background = 'var(--accent-hover)'
-              }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent)' }}
+              className="px-6 py-2.5 text-[14px] font-semibold border-none bg-[var(--ink)] text-[var(--paper)] cursor-pointer transition-opacity duration-150 hover:opacity-85 disabled:opacity-40 disabled:cursor-default"
             >
-              {saving ? 'Saving...' : 'Add to palace'}
+              {saving ? 'Saving…' : 'Add to palace'}
             </button>
           </div>
         </form>

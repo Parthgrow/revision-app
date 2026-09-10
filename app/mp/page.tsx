@@ -10,7 +10,7 @@ export default async function MpPage() {
   const items = await getAllMpItems(session.userId)
 
   return (
-    <div className="min-h-screen bg-(--bg)">
+    <div className="min-h-screen bg-[var(--paper)] flex flex-col sm:flex-row">
       <Nav />
       <MpClient initialItems={items} />
     </div>

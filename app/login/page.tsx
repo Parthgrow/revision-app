@@ -30,75 +30,71 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-[var(--bg)]">
+    <div className="min-h-screen flex bg-[var(--paper)]">
       {/* Left accent panel */}
-      <div
-        className="hidden lg:flex w-[380px] shrink-0 flex-col justify-between p-12"
-        style={{ background: 'var(--accent)' }}
-      >
-        <span className="font-serif text-[22px] text-white">MindGym</span>
+      <div className="hidden lg:flex w-[340px] shrink-0 flex-col justify-between p-12 border-r border-[var(--rule)]">
+        <span className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--ink)]">MindGym</span>
         <div className="flex flex-col gap-4">
-          <p className="font-serif text-[32px] text-white leading-[1.2]">
+          <p className="text-[26px] font-light text-[var(--ink)] leading-[1.3]">
             Memory is a palace. You hold the key.
           </p>
-          <p className="text-white/60 text-[13px] leading-relaxed">
+          <p className="text-[15px] text-[var(--ink-3)] leading-relaxed">
             Spaced repetition for the things that matter.
           </p>
         </div>
-        <p className="text-white/30 text-[11px] tracking-[0.08em] uppercase">
+        <p className="smallcaps">
           MindGym · Memory System
         </p>
       </div>
 
       {/* Right form panel */}
-      <div className="flex-1 flex items-center justify-center px-10">
+      <div className="flex-1 flex items-center justify-center px-6 sm:px-10 py-12">
         <div className="w-full max-w-[360px] flex flex-col gap-10">
 
           {/* Mobile brand */}
-          <div className="lg:hidden flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-[var(--accent)]" />
-            <span className="font-serif text-[20px] text-[var(--text-primary)]">MindGym</span>
+          <div className="lg:hidden flex items-center">
+            <span className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--ink)]">MindGym</span>
           </div>
 
           <div className="flex flex-col gap-2">
-            <h1 className="font-serif text-[32px] text-[var(--text-primary)] leading-tight">
+            <h1 className="text-[24px] font-semibold tracking-[-0.01em] text-[var(--ink)] leading-tight">
               Sign in
             </h1>
-            <p className="text-[13px] text-[var(--text-muted)]">
+            <p className="text-[15px] text-[var(--ink-3)]">
               Welcome back to your palace.
             </p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-medium tracking-[0.1em] uppercase text-[var(--text-secondary)]">
+              <label className="smallcaps">
                 Email
               </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text-primary)] px-4 py-3 text-[14px] outline-none w-full transition-colors duration-150 focus:border-[var(--accent)] placeholder:text-[var(--text-muted)]"
+                className="bg-transparent border border-[var(--rule)] text-[var(--ink)] px-4 py-3 text-[15px] outline-none w-full transition-colors duration-150 focus:border-[var(--ink-3)] placeholder:text-[var(--ink-4)]"
                 placeholder="you@example.com"
                 required
               />
             </div>
             <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-medium tracking-[0.1em] uppercase text-[var(--text-secondary)]">
+              <label className="smallcaps">
                 Password
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="bg-[var(--bg-elevated)] border border-[var(--border)] text-[var(--text-primary)] px-4 py-3 text-[14px] outline-none w-full transition-colors duration-150 focus:border-[var(--accent)] placeholder:text-[var(--text-muted)]"
+                className="bg-transparent border border-[var(--rule)] text-[var(--ink)] px-4 py-3 text-[15px] outline-none w-full transition-colors duration-150 focus:border-[var(--ink-3)] placeholder:text-[var(--ink-4)]"
                 placeholder="••••••••"
                 required
               />
             </div>
 
             {error && (
-              <p className="text-[12px] text-[var(--accent)] bg-[var(--accent-glow)] px-3 py-2 border border-[var(--accent)]/20">
+              <p className="text-[14px] text-[var(--ink-2)] px-3 py-2 border border-[var(--rule)] bg-[var(--paper-2)]">
                 {error}
               </p>
             )}
@@ -106,20 +102,17 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-1 py-3.5 text-[13px] font-semibold tracking-[0.06em] uppercase cursor-pointer transition-colors duration-150 border-none disabled:opacity-50 disabled:cursor-default"
-              style={{ background: 'var(--accent)', color: '#ffffff' }}
-              onMouseEnter={(e) => { if (!loading) (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent-hover)' }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = 'var(--accent)' }}
+              className="mt-1 py-3 text-[15px] font-semibold border-none bg-[var(--ink)] text-[var(--paper)] cursor-pointer transition-opacity duration-150 hover:opacity-85 disabled:opacity-40 disabled:cursor-default"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
 
-          <p className="text-[13px] text-[var(--text-muted)]">
+          <p className="text-[15px] text-[var(--ink-3)]">
             No account?{' '}
             <Link
               href="/register"
-              className="text-[var(--accent)] no-underline font-medium hover:text-[var(--accent-hover)] transition-colors duration-150"
+              className="text-[var(--ink)] no-underline underline underline-offset-4 decoration-[var(--rule)] hover:decoration-[var(--ink)] transition-colors duration-150"
             >
               Create one
             </Link>

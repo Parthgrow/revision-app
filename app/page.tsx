@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   ])
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="min-h-screen bg-[var(--paper)] flex flex-col sm:flex-row">
       <Nav />
       <HomeClient dueItems={due} totalCount={all.length} streak={streak} />
     </div>
