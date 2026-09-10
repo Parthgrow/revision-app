@@ -13,40 +13,58 @@ export default function Nav() {
   }
 
   const links = [
-    { href: '/', label: 'Home' },
-    { href: '/browse', label: 'Browse' },
+    { href: '/', label: 'Review' },
+    { href: '/browse', label: 'Library' },
     { href: '/mp', label: 'Palace' },
+    { href: '/add', label: 'Add' },
   ]
 
   return (
-    <nav className="flex items-center justify-between gap-4 px-6 sm:px-10 py-4 border-b border-[var(--hairline)] bg-[var(--bg)]">
+    // A margin, not a panel. One vertical rule and no fill, so the page stays a
+    // single sheet. Collapses to a strip along the top on small screens.
+    <nav
+      className="
+        shrink-0 border-b border-[var(--rule)]
+        px-5 py-4
+        flex flex-row items-baseline gap-5
+        sm:w-[136px] sm:min-h-screen sm:border-b-0 sm:border-r
+        sm:px-5 sm:py-7 sm:flex-col sm:items-stretch sm:gap-0
+      "
+    >
       <Link
         href="/"
-        className="font-serif text-[18px] text-[var(--text-primary)] no-underline"
+        className="text-[17px] font-semibold tracking-[-0.01em] text-[var(--ink)] no-underline sm:mb-5"
       >
         MindGym
       </Link>
-      <div className="flex items-center gap-5 sm:gap-7">
-        {links.map((l) => (
-          <Link
-            key={l.href}
-            href={l.href}
-            className={`text-[13px] no-underline transition-colors duration-150 ${
-              pathname === l.href
-                ? 'text-[var(--text-primary)]'
-                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            {l.label}
-          </Link>
-        ))}
-        <button
-          onClick={logout}
-          className="text-[13px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-[var(--text-secondary)]"
-        >
-          Sign out
-        </button>
+
+      <div className="flex flex-row items-baseline gap-4 sm:flex-col sm:items-stretch sm:gap-0">
+        {links.map((l) => {
+          const active = pathname === l.href
+          return (
+            <Link
+              key={l.href}
+              href={l.href}
+              aria-current={active ? 'page' : undefined}
+              className={`text-[15px] no-underline py-0.5 transition-colors duration-150 ${
+                active
+                  ? 'text-[var(--ink)] font-semibold'
+                  : 'text-[var(--ink-3)] hover:text-[var(--ink)]'
+              }`}
+            >
+              <span className="hidden sm:inline text-[var(--ink-4)]">{active ? '— ' : '   '}</span>
+              {l.label}
+            </Link>
+          )
+        })}
       </div>
+
+      <button
+        onClick={logout}
+        className="ml-auto sm:ml-0 sm:mt-auto text-left text-[13px] text-[var(--ink-4)] bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-[var(--ink-2)]"
+      >
+        Sign out
+      </button>
     </nav>
   )
 }

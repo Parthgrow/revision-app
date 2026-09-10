@@ -11,7 +11,7 @@ export default async function BrowsePage() {
   const sorted = items.sort((a, b) => a.dueDate - b.dueDate)
 
   return (
-    <div className="min-h-screen bg-[var(--bg)]">
+    <div className="min-h-screen bg-[var(--paper)] flex flex-col sm:flex-row">
       <Nav />
       <BrowseClient initialItems={sorted} />
     </div>
