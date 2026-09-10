@@ -29,50 +29,44 @@ export default function BrowseClient({ initialItems }: { initialItems: Item[] })
   }
 
   return (
-    <main className="max-w-[700px] mx-auto px-10 py-16 flex flex-col gap-10">
+    <main className="max-w-[700px] mx-auto px-6 sm:px-10 py-14 sm:py-16 flex flex-col gap-9">
 
-      <div className="flex items-end justify-between border-b border-[var(--border)] pb-5">
+      <div className="flex items-end justify-between gap-4 border-b border-[var(--hairline)] pb-5">
         <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-3">
-            <div className="w-6 h-[2px] bg-[var(--accent)]" />
-            <span className="text-[11px] font-medium tracking-[0.14em] uppercase text-[var(--text-muted)]">
-              Library
-            </span>
-          </div>
-          <h1 className="font-serif text-[38px] leading-tight text-[var(--text-primary)]">
+          <span className="eyebrow">Library</span>
+          <h1 className="font-serif text-[26px] sm:text-[30px] leading-tight text-[var(--text-primary)]">
             The palace
           </h1>
         </div>
-        <div className="flex flex-col items-end gap-1 pb-1">
-          <span className="font-serif text-[36px] leading-none" style={{ color: 'var(--accent)' }}>
+        <div className="flex flex-col items-end gap-1 pb-1 shrink-0">
+          <span className="font-serif text-[26px] leading-none text-[var(--text-primary)]">
             {items.length}
           </span>
-          <span className="text-[10px] font-medium tracking-[0.12em] uppercase text-[var(--text-muted)]">
+          <span className="text-[12px] text-[var(--text-muted)]">
             item{items.length !== 1 ? 's' : ''}
           </span>
         </div>
       </div>
 
       {items.length === 0 ? (
-        <p className="text-[14px] text-[var(--text-muted)] py-10">
+        <p className="text-[15px] text-[var(--text-muted)] py-10">
           Nothing stored yet.
         </p>
       ) : (
-        <div className="flex flex-col gap-px bg-[var(--border)] border border-[var(--border)]">
+        <div className="flex flex-col row-divide border-t border-b border-[var(--hairline)]">
           {items.map((item) => {
             const due = formatDue(item.dueDate)
             return (
               <div
                 key={item.id}
-                className="bg-[var(--bg)] px-6 py-5 flex flex-col gap-3 transition-colors duration-150 hover:bg-[var(--bg-card)]"
+                className="px-1 py-5 flex flex-col gap-2.5 transition-colors duration-150 hover:bg-[var(--bg-subtle)]"
               >
                 <div className="font-serif text-[17px] text-[var(--text-primary)] leading-relaxed">
                   {item.content}
                 </div>
-                <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] tracking-[0.04em]">
+                <div className="flex items-center gap-2 text-[12px] text-[var(--text-faint)] flex-wrap">
                   <span
-                    className="font-medium"
-                    style={{ color: due.urgent ? 'var(--accent)' : 'var(--text-muted)' }}
+                    className={due.urgent ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)]'}
                   >
                     {due.text}
                   </span>
@@ -83,7 +77,7 @@ export default function BrowseClient({ initialItems }: { initialItems: Item[] })
                   <button
                     onClick={() => handleDelete(item.id)}
                     aria-label="Delete item"
-                    className="ml-auto bg-transparent border-none text-[var(--text-muted)] cursor-pointer text-[11px] opacity-30 transition-all duration-150 hover:opacity-100 hover:text-[var(--accent)] px-1"
+                    className="ml-auto bg-transparent border-none text-[var(--text-faint)] cursor-pointer text-[12px] transition-colors duration-150 hover:text-[var(--text-primary)] px-1"
                   >
                     ✕
                   </button>

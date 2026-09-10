@@ -15,28 +15,26 @@ export default function Nav() {
   const links = [
     { href: '/', label: 'Home' },
     { href: '/browse', label: 'Browse' },
-    { href: '/mp', label: 'mp' },
+    { href: '/mp', label: 'Palace' },
   ]
 
   return (
-    <nav className="flex items-center justify-between px-10 py-4 border-b border-(--border) bg-(--bg)">
+    <nav className="flex items-center justify-between gap-4 px-6 sm:px-10 py-4 border-b border-[var(--hairline)] bg-[var(--bg)]">
       <Link
         href="/"
-        className="font-serif text-[20px] text-(--text-primary) no-underline flex items-center gap-2.5"
+        className="font-serif text-[18px] text-[var(--text-primary)] no-underline"
       >
-        <span
-          className="w-2 h-2 rounded-full inline-block"
-          style={{ background: 'var(--accent)' }}
-        />
         MindGym
       </Link>
-      <div className="flex items-center gap-7">
+      <div className="flex items-center gap-5 sm:gap-7">
         {links.map((l) => (
           <Link
             key={l.href}
             href={l.href}
-            className={`text-[12px] font-medium tracking-[0.08em] uppercase no-underline transition-colors duration-150 ${
-              pathname === l.href ? 'text-(--accent)' : 'text-(--text-muted) hover:text-(--text-primary)'
+            className={`text-[13px] no-underline transition-colors duration-150 ${
+              pathname === l.href
+                ? 'text-[var(--text-primary)]'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
             }`}
           >
             {l.label}
@@ -44,7 +42,7 @@ export default function Nav() {
         ))}
         <button
           onClick={logout}
-          className="text-[12px] font-medium tracking-[0.08em] uppercase text-(--text-muted) bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-(--accent)"
+          className="text-[13px] text-[var(--text-muted)] bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-[var(--text-secondary)]"
         >
           Sign out
         </button>
