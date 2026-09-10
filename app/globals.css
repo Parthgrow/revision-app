@@ -2,20 +2,30 @@
 
 @import "tailwindcss";
 
+/* Monochrome. No hue anywhere — hierarchy comes from weight, size and space. */
 :root {
-  --bg: #000000;
-  --bg-card: #0d0d0d;
-  --bg-elevated: #1a1a1a;
-  --border: #262626;
-  --border-light: #1f1f1f;
-  --text-primary: #f5f5f5;
-  --text-secondary: #a3a3a3;
-  --text-muted: #525252;
-  --accent: #dc2626;
-  --accent-hover: #b91c1c;
-  --accent-dim: #ef4444;
-  --accent-glow: rgba(220, 38, 38, 0.08);
-  --accent-glow-strong: rgba(220, 38, 38, 0.14);
+  --bg: #0a0a0b;
+  --bg-subtle: #111113;
+  --bg-elevated: #17171a;
+
+  --hairline: rgba(255, 255, 255, 0.07);
+  --hairline-strong: rgba(255, 255, 255, 0.14);
+
+  --text-primary: #ededed;
+  --text-secondary: #a1a1a6;
+  --text-muted: #6b6b73;
+  --text-faint: #46464d;
+
+  /* Kept as aliases so no stray reference falls back to nothing. Emphasis is
+     brightness now, not colour — anything still asking for "accent" gets the
+     brightest text instead of red. */
+  --border: var(--hairline);
+  --bg-card: var(--bg-subtle);
+  --accent: var(--text-primary);
+  --accent-hover: #ffffff;
+  --accent-dim: var(--text-secondary);
+  --accent-glow: rgba(255, 255, 255, 0.05);
+  --accent-glow-strong: rgba(255, 255, 255, 0.09);
 }
 
 * {
@@ -38,10 +48,30 @@ body {
 }
 
 ::selection {
-  background: var(--accent);
-  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text-primary);
 }
 
 input, textarea, button {
   font-family: 'DM Sans', sans-serif;
+}
+
+/* Keyboard focus was invisible before — everything is border-none. */
+:focus-visible {
+  outline: 1px solid var(--hairline-strong);
+  outline-offset: 2px;
+}
+
+/* Small quiet label. Sentence case, barely tracked — replaces the uppercase
+   0.14em labels, which were one of the loudest things on every screen. */
+.eyebrow {
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+}
+
+/* Rows separated by a hairline rather than sitting in bordered boxes. */
+.row-divide > * + * {
+  border-top: 1px solid var(--hairline);
 }
