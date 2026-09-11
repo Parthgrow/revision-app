@@ -97,10 +97,10 @@ export default function MpClient({ initialItems }: Props) {
   }
 
   return (
-    <main className="flex-1 w-full max-w-[860px] mx-auto px-6 sm:px-10 py-8 sm:py-12 flex flex-col">
+    <main className="w-full max-w-[880px] px-6 sm:px-10 py-10 sm:py-14 flex flex-col">
 
-      <header className="flex items-baseline justify-between gap-4 border-b border-[var(--rule-ink)] pb-2">
-        <h1 className="text-[20px] font-semibold tracking-[-0.01em]">Palace</h1>
+      <header className="flex items-baseline justify-between gap-4 border-b border-[var(--rule-ink)] pb-3">
+        <h1 className="text-[22px] font-semibold tracking-[-0.01em]">Palace</h1>
         <div className="flex items-baseline gap-4">
           <span className="text-[14px] text-[var(--ink-2)]">
             {items.length} {items.length === 1 ? 'entry' : 'entries'}
@@ -120,7 +120,7 @@ export default function MpClient({ initialItems }: Props) {
         </div>
       </header>
 
-      <p className="smallcaps pt-2">One memory palace a day</p>
+      <p className="smallcaps pt-4">One memory palace a day</p>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-[rgba(33,31,28,0.28)] px-4">
@@ -193,8 +193,8 @@ export default function MpClient({ initialItems }: Props) {
           No rooms in your memory palace yet. Start by adding a single clear image or phrase.
         </p>
       ) : (
-        <div className="ledger flex flex-col pt-4">
-          <div className="grid grid-cols-[1fr_28px] sm:grid-cols-[1fr_220px_28px] gap-4 px-3 pb-1.5 border-b border-[var(--rule)]">
+        <div className="ledger flex flex-col pt-7">
+          <div className="grid grid-cols-[1fr_28px] sm:grid-cols-[1fr_220px_28px] gap-5 px-3 pb-2 border-b border-[var(--rule)]">
             <span className="smallcaps">Entry</span>
             <span className="smallcaps hidden sm:block">Status</span>
             <span />
@@ -203,9 +203,9 @@ export default function MpClient({ initialItems }: Props) {
           {items.map((item) => (
             <div
               key={item.id}
-              className="row group grid grid-cols-[1fr_28px] sm:grid-cols-[1fr_220px_28px] gap-x-4 gap-y-2 px-3 py-2.5 items-baseline transition-colors duration-100"
+              className="row group grid grid-cols-[1fr_28px] sm:grid-cols-[1fr_220px_28px] gap-x-5 gap-y-2.5 px-3 py-3.5 items-baseline transition-colors duration-100"
             >
-              <span className="text-[15px] leading-snug">{item.content}</span>
+              <span className="text-[16px] leading-snug">{item.content}</span>
 
               <div className="col-span-2 sm:col-span-1 sm:col-start-2 inline-flex border border-[var(--rule)] overflow-hidden text-[12px] w-fit">
                 {STATUS_LABELS.map((s) => (
