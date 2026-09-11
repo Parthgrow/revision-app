@@ -30,10 +30,11 @@ export default function AddPage() {
   return (
     <div className="min-h-screen bg-[var(--paper)] flex flex-col sm:flex-row">
       <Nav />
-      <main className="flex-1 w-full max-w-[680px] mx-auto px-6 sm:px-10 py-8 sm:py-12 flex flex-col gap-8">
+      <div className="flex-1 min-w-0 flex justify-center">
+        <main className="w-full max-w-[680px] px-6 sm:px-10 py-10 sm:py-14 flex flex-col gap-8">
 
-        <header className="flex items-baseline justify-between gap-4 border-b border-[var(--rule-ink)] pb-2">
-          <h1 className="text-[20px] font-semibold tracking-[-0.01em]">New item</h1>
+        <header className="flex items-baseline justify-between gap-4 flex-wrap border-b border-[var(--rule-ink)] pb-3">
+          <h1 className="text-[22px] font-semibold tracking-[-0.01em]">New item</h1>
           <span className="smallcaps">What do you want to remember?</span>
         </header>
 
@@ -64,7 +65,8 @@ export default function AddPage() {
             </button>
           </div>
         </form>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }

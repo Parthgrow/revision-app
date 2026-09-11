@@ -83,3 +83,9 @@ input, textarea, button, select {
 .ledger > .row:hover {
   background: var(--paper-3);
 }
+/* The open row must beat the alternating wash, so it lives here rather than as
+   a utility class that nth-child would fight. */
+.ledger > .row.is-open,
+.ledger > .row.is-open:hover {
+  background: var(--paper-3);
+}
