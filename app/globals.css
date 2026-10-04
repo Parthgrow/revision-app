@@ -31,10 +31,14 @@
   --accent-hover: #000000;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* In the base layer so Tailwind's spacing utilities (px-6, py-10, ...) can
+   override it — unlayered, this reset beat every utility class. */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
 }
 
 body {
