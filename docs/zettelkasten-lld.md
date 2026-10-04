@@ -712,6 +712,6 @@ New dependencies: `react-markdown`, `minisearch`, and `vitest` (dev, for the pur
 
 ## 15. Open questions for review
 1. Keep Folgezettel addresses optional (current design), or require them for permanent notes?
-2. Delete with incoming links: warn and allow (current design), or block?
+2. ~~Delete with incoming links: warn and allow, or block?~~ **Decided: warn and allow.**
 3. Stale-write protection (§14): needed now or later?
 4. SM-2 card content: note title only (current design), or title plus the first paragraph?
