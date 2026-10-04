@@ -93,3 +93,55 @@ input, textarea, button, select {
 .ledger > .row.is-open:hover {
   background: var(--paper-3);
 }
+
+/* Zettelkasten note bodies. Plain printed-page typography: no Tailwind
+   typography plugin, just enough rhythm for headings, lists and quotes. */
+.zk-prose {
+  font-size: 18px;
+  line-height: 1.65;
+  color: var(--ink);
+}
+.zk-prose > * + * { margin-top: 0.9em; }
+.zk-prose h1, .zk-prose h2, .zk-prose h3 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  margin-top: 1.4em;
+}
+.zk-prose h1 { font-size: 1.35em; }
+.zk-prose h2 { font-size: 1.2em; }
+.zk-prose h3 { font-size: 1.05em; }
+.zk-prose ul, .zk-prose ol { padding-left: 1.4em; }
+.zk-prose ul { list-style: disc; }
+.zk-prose ol { list-style: decimal; }
+.zk-prose li + li { margin-top: 0.25em; }
+.zk-prose blockquote {
+  border-left: 2px solid var(--rule);
+  padding-left: 1em;
+  color: var(--ink-2);
+}
+.zk-prose code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  background: var(--paper-2);
+  padding: 0.1em 0.3em;
+}
+.zk-prose pre {
+  background: var(--paper-2);
+  padding: 0.9em 1em;
+  overflow-x: auto;
+}
+.zk-prose pre code { background: none; padding: 0; }
+.zk-prose a {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--ink-4);
+}
+.zk-prose a:hover { text-decoration-color: var(--ink); }
+.zk-prose .zk-broken {
+  color: var(--ink-4);
+  text-decoration: line-through;
+  cursor: help;
+}
+.zk-prose hr { border: none; border-top: 1px solid var(--rule); }

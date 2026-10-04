@@ -1,6 +1,6 @@
 # Zettelkasten — Low-Level Design
 
-Status: **Draft for review**
+Status: **Implemented** (see §16 for where the code differs from the first draft)
 Scope: a `/zk` section inside MindGym (this app), reusing its auth (`lib/auth.ts`), storage (Vercel KV) and SM-2 review (`lib/sm2.ts`).
 
 ---
@@ -215,7 +215,14 @@ export type CreateNoteInput = {
   sourceId?: string
   withAddress?: boolean // allocate a new root address
 }
-export type UpdateNoteInput = Partial<Pick<Note, 'title' | 'body' | 'tags' | 'type' | 'sourceId'>>
+export type UpdateNoteInput = {
+  title?: string
+  body?: string
+  tags?: string[]
+  sourceId?: string | null
+  expectedUpdatedAt?: number // stale-save protection, see §14
+  force?: boolean            // overwrite a newer version deliberately
+}
 ```
 
 ### 3.3 Invariants (enforced in `NoteService`)
@@ -301,8 +308,6 @@ classDiagram
     +deleteNote(userId, id)
     +addBacklink(userId, target, from)
     +removeBacklink(userId, target, from)
-    +claimAddress(userId, address, id)
-    +releaseAddress(userId, address)
     +linkSource(userId, sourceId, noteId)
     +unlinkSource(userId, sourceId, noteId)
     +commit() Promise~void~
@@ -332,7 +337,7 @@ classDiagram
 
 Reads go through the repositories directly. **All multi-key writes go through `UnitOfWork`**, which queues commands on `kv.multi()` and runs them in `commit()`. This keeps a note and its backlink sets consistent.
 
-`claimAddress` uses `HSETNX`. If the field already exists, `commit()` throws `AddressTakenError` and the service retries with the next counter value.
+Address claims are **not** part of the unit of work: a Redis `MULTI` can't abort on a failed `HSETNX`. `AddressIndex.claim()` runs `HSETNX` first; if the field is taken the service tries the next counter value. If the later `commit()` fails, the claimed address is released.
 
 ---
 
@@ -461,7 +466,7 @@ note = get(id)
 uow.deleteNote(id)                         // note key + user:{u}:notes membership
 for t in note.links: uow.removeBacklink(t, id)
 uow.del(note:{u}:{id}:backlinks)
-if note.address:  uow.releaseAddress(address)   // address is NOT reused: counter keeps going
+if note.address:  addresses.release(address)    // after commit; address is NOT reused: counter keeps going
 if note.sourceId: uow.unlinkSource(sourceId, id)
 uow.commit()
 return { brokenIncoming: backlinks(id) }   // shown to user before confirming
@@ -523,8 +528,9 @@ sequenceDiagram
   A-->>S: 3
   S->>S: childAt("1a", 3) → "1a3"
   S->>S: body ← "Continues [[parentId|parent title]]\n\n"
-  S->>W: putNote(new), claimAddress("1a3"), addBacklink(parentId, newId)
-  W-->>S: commit OK (or AddressTaken → retry with next INCR)
+  S->>A: claim("1a3") (HSETNX; taken → INCR again)
+  S->>W: putNote(new), addBacklink(parentId, newId)
+  W-->>S: commit OK (failure → release "1a3")
   S-->>API: Note
   API-->>V: 201 → router.push(/zk/{newId}/edit)
 ```
@@ -616,12 +622,11 @@ flowchart LR
     New["/zk/new — QuickCapture"]
     View["/zk/[id] — NoteView"]
     Edit["/zk/[id]/edit — NoteEditor"]
-    Search["/zk/search"]
     Sources["/zk/sources, /zk/sources/[id]"]
   end
 
   subgraph components/zk
-    NoteCard
+    NoteRow
     MarkdownView
     BacklinksPanel
     SequenceNav
@@ -629,23 +634,22 @@ flowchart LR
     LinkAutocomplete
     TypeBadge
     TagInput
-    useSearchIndex["useSearchIndex() hook"]
+    useNoteSearch["useNoteSearch() hook"]
   end
 
-  Home --> NoteCard
+  Home --> NoteRow
   View --> MarkdownView
   View --> BacklinksPanel
   View --> SequenceNav
   Edit --> NoteEditor
   NoteEditor --> LinkAutocomplete
   NoteEditor --> TagInput
-  LinkAutocomplete --> useSearchIndex
-  Search --> useSearchIndex
-  Search --> NoteCard
+  LinkAutocomplete --> useNoteSearch
+  Home --> useNoteSearch
   MarkdownView -->|"[[id]] → Link"| View
 ```
 
-- `useSearchIndex` fetches `GET /api/zk/notes?view=index` once, builds a MiniSearch index over title, tags and a 300-character body excerpt, and refreshes after any save. This is enough for the target of ~5,000 notes.
+- `useNoteSearch` fetches `GET /api/zk/notes?view=index` once, builds a MiniSearch index over title, tags and a 300-character body excerpt, and refreshes after any save. This is enough for the target of ~5,000 notes.
 - `MarkdownView` uses `react-markdown` with a small remark plugin that turns `[[id|label]]` into `<Link href="/zk/id">`.
 - Styling reuses the existing tokens (`--ink`, `--rule`, …) and the Nav pattern. Nav gets a `{ href: '/zk', label: 'Notes' }` entry.
 
@@ -672,13 +676,13 @@ app/api/zk/
   sources/route.ts
   sources/[id]/route.ts
 app/zk/
-  page.tsx  new/page.tsx  search/page.tsx
+  page.tsx  new/page.tsx
   [id]/page.tsx  [id]/edit/page.tsx
   sources/page.tsx  sources/[id]/page.tsx
 components/zk/
-  NoteCard.tsx MarkdownView.tsx BacklinksPanel.tsx SequenceNav.tsx
+  NoteRow.tsx MarkdownView.tsx BacklinksPanel.tsx SequenceNav.tsx
   NoteEditor.tsx LinkAutocomplete.tsx TagInput.tsx TypeBadge.tsx
-  useSearchIndex.ts
+  useNoteSearch.ts
 ```
 
 New dependencies: `react-markdown`, `minisearch`, and `vitest` (dev, for the pure modules).
@@ -704,14 +708,25 @@ New dependencies: `react-markdown`, `minisearch`, and `vitest` (dev, for the pur
 | Rename a title | Nothing to update, because links point at IDs. Unlabelled links show the new title automatically. |
 | Deleted address | Never reused; the counter only increases. Luhmann's rule was that addresses are permanent. |
 | Manual address entry | Allowed on create (e.g. `"7"`), validated by `parse`, claimed with `HSETNX`; returns 409 if taken. |
-| Two tabs editing the same note | Last write wins for now. **Open question:** add an `updatedAt` precondition and return 409 on a stale save? |
+| Two tabs editing the same note | **Stale-save protection.** The editor sends `expectedUpdatedAt` (the version it loaded). If the stored note is newer, `PATCH` returns `409 { error, current }` and the editor shows a dialog: *load their version* or *overwrite with mine* (`force: true`). `updatedAt` always increases, and metadata writes (`reviewItemId`, an assigned address) don't bump it, so they never cause false conflicts. |
 | KV `MULTI` limits | Upstash runs MULTI atomically, but it isn't isolated against concurrent readers. That's acceptable for a single-user collection. |
 | Growth past ~5k notes / semantic "related notes" | Move to Postgres (tables `notes`, `links(from,to)`, `sources`) behind the same repository interfaces; services and UI don't change. |
 
 ---
 
-## 15. Open questions for review
-1. Keep Folgezettel addresses optional (current design), or require them for permanent notes?
-2. ~~Delete with incoming links: warn and allow, or block?~~ **Decided: warn and allow.**
-3. Stale-write protection (§14): needed now or later?
-4. SM-2 card content: note title only (current design), or title plus the first paragraph?
+## 15. Decisions
+1. Folgezettel addresses are **optional and automatic**: only "Continue this thought" (or an explicit address) assigns one.
+2. Deleting a note other notes link to: **warn and allow**. The UI lists the linking notes first.
+3. Stale-save protection: **implemented** (§14).
+4. Review bridge: **kept**. The card shows the note's title; the review drawer links back to the note.
+
+## 16. Implementation notes (differences from the first draft)
+- **No separate search or capture pages.** `/zk` holds quick capture, search (MiniSearch in the browser), tag filters, the inbox, entry points, recent notes and orphans. `/zk/new` is the full editor for a new note.
+- **Address claims happen outside the `MULTI`** (§5), because a transaction can't abort on a failed `HSETNX`.
+- **Saving is explicit**: a Save button, ⌘/Ctrl+S, and a leave-page warning while there are unsaved changes. Autosave can be added later; the 409 conflict flow already handles it.
+- **The stale check is check-then-write**, not atomic: two saves within the same few milliseconds could still race. That's acceptable for a single-user collection; `WATCH` or a Lua script would close the gap if needed.
+- **Code layout:**
+  - `lib/zk/summary.ts` is the client-safe part of the service, used by the UI.
+  - `lib/zk/index.ts` wires the services to KV and maps errors to HTTP responses.
+- **Components:** link autocomplete lives inside `NoteEditor`; backlinks, sequence nav and type badges are part of `app/zk/[id]/NoteViewClient.tsx` rather than separate components.
+- **Tests:** `npm test` runs vitest over `lib/**/*.test.ts`.
