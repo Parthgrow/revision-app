@@ -18,6 +18,7 @@ export type Item = {
   easeFactor: number
   repetitions: number
   dueDate: number
+  noteId?: string // set when the item was created from a Zettelkasten note
 }
 
 export type MpStatus = 'prep' | 'memorize' | 'add-revision'
@@ -49,7 +50,11 @@ export async function createUser(email: string, password: string): Promise<User>
 
 // --- Items ---
 
-export async function createItem(userId: string, content: string): Promise<Item> {
+export async function createItem(
+  userId: string,
+  content: string,
+  extra: { noteId?: string } = {}
+): Promise<Item> {
   const id = nanoid()
   const item: Item = {
     id,
@@ -57,6 +62,7 @@ export async function createItem(userId: string, content: string): Promise<Item>
     content,
     createdAt: Date.now(),
     ...initialSM2(),
+    ...(extra.noteId && { noteId: extra.noteId }),
   }
   await kv.set(`item:${userId}:${id}`, item)
   await kv.sadd(`user:${userId}:items`, id)
@@ -69,6 +75,10 @@ export async function getAllItems(userId: string): Promise<Item[]> {
   const keys = ids.map((id) => `item:${userId}:${id}`)
   const items = await kv.mget<Item[]>(...keys)
   return items.filter(Boolean) as Item[]
+}
+
+export async function getItem(userId: string, itemId: string): Promise<Item | null> {
+  return kv.get<Item>(`item:${userId}:${itemId}`)
 }
 
 export async function getDueItems(userId: string): Promise<Item[]> {

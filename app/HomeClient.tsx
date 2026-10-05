@@ -10,6 +10,7 @@ type Item = {
   easeFactor: number
   repetitions: number
   dueDate: number
+  noteId?: string
 }
 
 type Streak = { current: number }
@@ -173,8 +174,17 @@ export default function HomeClient({ items: initialItems, streak }: Props) {
               </button>
             </div>
 
-            <div className="flex-1 flex items-center px-7 py-10 overflow-y-auto">
+            <div className="flex-1 flex flex-col justify-center gap-5 px-7 py-10 overflow-y-auto">
               <p className="text-[21px] font-light leading-[1.5]">{open.content}</p>
+              {/* Cards sent from a Zettelkasten note link back to the full note. */}
+              {open.noteId && (
+                <Link
+                  href={`/zk/${open.noteId}`}
+                  className="self-start text-[14px] text-[var(--ink-2)] underline underline-offset-4 decoration-[var(--rule)] hover:text-[var(--ink)] hover:decoration-[var(--ink)] transition-colors duration-150"
+                >
+                  Open note →
+                </Link>
+              )}
             </div>
 
             <div className="px-7 pb-7 flex flex-col gap-4">
