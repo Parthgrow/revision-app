@@ -2,134 +2,135 @@
 
 Status: **Draft for review**
 Builds on: `docs/zettelkasten-lld.md` (notes, links, backlinks, Folgezettel addresses).
-Scope: (1) a whole-collection graph at `/zk/graph`; (2) a local graph on each note page.
+Scope: **the whole-collection graph at `/zk/graph` only.** The per-note local graph is deferred.
+
+---
+
+## 0. In simple terms
+
+Every note is a **dot**; every connection between two notes is a **line**. Building the graph has three steps:
+
+1. **Keep a small index card per note.** Alongside each note we store a tiny summary: its title, type, address, tags, and which notes it links to. It never includes the note text. The card is updated automatically whenever the note is saved or deleted.
+2. **Turn the cards into dots and lines.** When you open `/zk/graph`, the server reads all the cards in one go:
+   - every card becomes a dot;
+   - every `[[link]]` becomes a line;
+   - every Folgezettel parent → child pair (`1` → `1a`) becomes a dashed line.
+3. **Let physics arrange it.** In the browser:
+   - lines act like springs, pulling connected notes together;
+   - dots push each other apart;
+   - after a second or so it settles, and notes about related ideas end up clustered.
+
+   You can hover, click, drag and zoom.
 
 ---
 
 ## 1. Requirements
 
-### Functional
 | # | Requirement |
 |---|---|
 | G1 | `/zk/graph` shows every note as a node and every connection as an edge. |
-| G2 | Two edge kinds: **link** (a `[[…]]` in a note body) and **sequence** (Folgezettel parent → child, e.g. `1a` → `1a1`). Sequence edges can be toggled off. |
-| G3 | Node size reflects how connected the note is; node style reflects note type. |
-| G4 | Hover a node: highlight it and its neighbours, show the title. Click: open the note. Drag: move it (and pin it). Zoom and pan. |
-| G5 | Filters: note types, hide orphans, tag, and a search box that finds and centres a node. |
-| G6 | Each note page shows a **local graph**: the note plus notes 1 or 2 hops away (toggle), with the current note centred. |
-| G7 | Layout is stable between visits: the same collection gives the same starting picture. |
+| G2 | Two edge kinds: **link** (`[[…]]` in a body) and **sequence** (Folgezettel parent → child). Sequence edges can be toggled. |
+| G3 | Node size grows with the number of connections; node shape and tone show the note type. |
+| G4 | Hover highlights a node and its neighbours; click opens the note; drag moves and pins; zoom and pan. |
+| G5 | Filters: note types, sequence edges on/off, hide orphans, tag. A search box centres a chosen node. |
+| G6 | Stable layout: the same notes give the same starting picture on every visit. |
 
-### Non-functional
-- Loading the graph must **not** read every note body. Today's home page loads all bodies, which is fine for summaries but too heavy for a graph of thousands of notes.
-- Graph data stays consistent with notes: it is written in the same `MULTI` as the note itself.
-- Target: smooth interaction up to ~1,500 nodes with SVG. Beyond that, see §11.
-
----
-
-## 2. What exists today (and why it isn't enough)
-
-Everything the graph needs is already stored, but spread out:
-
-| Needed for the graph | Where it lives today | Cost to read for N notes |
-|---|---|---|
-| Node list | `user:{u}:notes` (set) | 1 × `SMEMBERS` |
-| Title, type, tags, outgoing links | inside `note:{u}:{id}` JSON, **next to the full body** | 1 × `MGET` of N full notes, bodies included |
-| Folgezettel edges | `user:{u}:zk-addr` (hash address → id) | 1 × `HGETALL` |
-
-Building the graph from these would mean downloading every note body (up to 50 KB each) just to read titles and links. Hence the one schema addition below.
+Non-functional:
+- Loading the graph must not read note bodies.
+- Graph data is written in the same transaction as the note, so it is never out of date.
+- Smooth up to ~1,500 nodes (SVG).
 
 ---
 
-## 3. Database schema
+## 2. Database schema
 
-### 3.1 New key: the graph index
+### 2.1 The one new key
 
-| Key | Type | Field | Value |
+| Key | Redis type | Field | Value |
 |---|---|---|---|
-| `user:{u}:zk-graph` | **hash** | note id | compact JSON `GraphEntry` (below) |
+| `user:{u}:zk-graph` | hash | note id | `GraphEntry` as compact JSON |
 
 ```ts
-// lib/zk/types.ts
 export type GraphEntry = {
   t: string     // title
   y: NoteType   // type
   a?: string    // Folgezettel address
   g: string[]   // tags
-  l: string[]   // outgoing link targets (same as Note.links)
+  l: string[]   // outgoing link targets (= Note.links)
 }
 ```
 
-- Short field names keep each entry around 100–200 bytes. 5,000 notes ≈ 1 MB in a single `HGETALL`, versus tens of MB with bodies.
-- This is a **derived index**, like the backlink sets: it never holds information that isn't also in `note:{u}:{id}`. If it is lost, it can be rebuilt from the notes.
-
-### 3.2 Full key layout after this change
-
+Example:
 ```
-note:{u}:{id}                   Note JSON (source of truth)
-note:{u}:{id}:backlinks         set   ids linking TO {id}             (existing, derived)
-user:{u}:notes                  set   all note ids                    (existing)
-user:{u}:zk-addr                hash  address → note id               (existing)
-user:{u}:zk-addr-next:{parent}  int   child counter per parent        (existing)
-user:{u}:zk-graph               hash  note id → GraphEntry JSON       (NEW, derived)
-source:{u}:{id}                 Source JSON                            (existing)
-user:{u}:sources                set   all source ids                  (existing)
-source:{u}:{id}:notes           set   literature notes citing it      (existing)
+HGET user:abc:zk-graph qWxykXh38R
+→ {"t":"Indexes","y":"fleeting","a":"2","g":["db"],"l":["Pk2mXa91Lq"]}
 ```
+
+### 2.2 Why it's needed
+
+Without it, the server would have to download every full note, including its text (up to 50 KB each), just to read titles and links. Each entry is about 100–200 bytes, so 5,000 notes ≈ 1 MB in one `HGETALL`.
+
+The index is **derived**: it holds nothing that isn't also in `note:{u}:{id}`, so it can always be rebuilt (just like the backlink sets).
+
+### 2.3 Full key layout after this change
+
+| Key | Type | Holds | Status |
+|---|---|---|---|
+| `note:{u}:{id}` | string (JSON) | the full Note | source of truth |
+| `note:{u}:{id}:backlinks` | set | ids linking to `{id}` | existing, derived |
+| `user:{u}:notes` | set | all note ids | existing |
+| `user:{u}:zk-addr` | hash | address → note id | existing |
+| `user:{u}:zk-addr-next:{parent}` | integer | child counter | existing |
+| **`user:{u}:zk-graph`** | **hash** | **note id → GraphEntry** | **new, derived** |
+| `source:{u}:{id}`, `user:{u}:sources`, `source:{u}:{id}:notes` | | sources | existing |
 
 ```mermaid
 erDiagram
   USER ||--o{ NOTE : "user:{u}:notes"
   USER ||--|| GRAPH_INDEX : "user:{u}:zk-graph"
   USER ||--|| ADDRESS_HASH : "user:{u}:zk-addr"
-  GRAPH_INDEX ||--o{ GRAPH_ENTRY : "field per note"
+  GRAPH_INDEX ||--o{ GRAPH_ENTRY : "one field per note"
   GRAPH_ENTRY ||--|| NOTE : "mirrors title/type/address/tags/links"
-  NOTE }o--o{ NOTE : "links (note.links) / backlinks set"
-  ADDRESS_HASH ||--o{ NOTE : "address → id"
+  NOTE }o--o{ NOTE : "links"
 ```
 
-### 3.3 Write rules (keeping the index consistent)
+### 2.4 Keeping it in sync
 
-The index is written by the **same `UnitOfWork` calls** that already write notes. No service code changes, and no new failure modes:
+Every note change already goes through two `UnitOfWork` calls. Each gains one command inside the **same `MULTI`**:
 
-| UnitOfWork call | Existing writes | Added write (same `MULTI`) |
+| Call | Already does | Adds |
 |---|---|---|
-| `putNote(note)` | `SET note:{u}:{id}`, `SADD user:{u}:notes` | `HSET user:{u}:zk-graph {id} toGraphEntry(note)` |
-| `deleteNote(u, id)` | `DEL note…, note…:backlinks`, `SREM user:{u}:notes` | `HDEL user:{u}:zk-graph {id}` |
+| `putNote(note)` | `SET note`, `SADD notes` | `HSET user:{u}:zk-graph {id} toGraphEntry(note)` |
+| `deleteNote(u, id)` | `DEL note`, `DEL backlinks`, `SREM notes` | `HDEL user:{u}:zk-graph {id}` |
 
-Every path that changes a note (create, update, promote, continue-this-thought assigning the parent an address, review bridge setting `reviewItemId`) goes through `putNote`, so all of them are covered automatically.
+This covers create, edit, promote, continue-this-thought and the review bridge, with no change to `NoteService` write code.
 
-### 3.4 Backfill and self-healing
+### 2.5 Existing notes (backfill)
 
-Notes created before this change (your current 5) have no index entry.
+1. On each graph load, compare `HLEN zk-graph` with `SCARD notes` (two cheap calls, pipelined).
+2. If they differ, rebuild once: load all notes, `DEL` the index, `HSET` every entry in one `MULTI`.
+3. After that, the counts match and no rebuild happens.
 
-- On every graph read, the service compares `HLEN user:{u}:zk-graph` with `SCARD user:{u}:notes` (two cheap calls, pipelined).
-- If they differ, it rebuilds:
-  1. `MGET` all notes;
-  2. `DEL` the index;
-  3. `HSET` every entry in one `MULTI`.
-- This runs once per user after deploy, and again only if the index ever drifts.
-- No migration script and no downtime.
-
-**Why not rebuild on every read?** Because a rebuild costs the full `MGET` with bodies, which is the expensive thing the index exists to avoid.
+This needs no migration script.
 
 ---
 
-## 4. Domain model
+## 3. Object model (OOP)
 
 ```mermaid
 classDiagram
   direction LR
 
   class GraphEntry {
-    <<stored>>
+    <<stored record>>
     +string t
     +NoteType y
     +string? a
     +string[] g
     +string[] l
   }
-
   class GraphNode {
+    <<value object>>
     +string id
     +string title
     +NoteType type
@@ -137,363 +138,211 @@ classDiagram
     +string[] tags
     +number degree
   }
-
+  class GraphEdge {
+    <<value object>>
+    +string source
+    +string target
+    +EdgeKind[] kinds
+  }
+  class Graph {
+    <<value object>>
+    +GraphNode[] nodes
+    +GraphEdge[] edges
+  }
   class EdgeKind {
     <<enumeration>>
     link
     sequence
   }
-
-  class GraphEdge {
-    +string source
-    +string target
-    +EdgeKind[] kinds
-  }
-
-  class Graph {
-    +GraphNode[] nodes
-    +GraphEdge[] edges
-    +boolean truncated
-  }
-
   class GraphBuilder {
-    <<pure — lib/zk/graph.ts>>
+    <<pure module — lib/zk/graph.ts>>
     +toGraphEntry(note) GraphEntry
     +buildGraph(entries, opts) Graph
-    +neighbourhood(graph, focusId, depth, cap) Graph
     +seedPosition(id) [x, y]
   }
+  class GraphIndex {
+    <<interface>>
+    +all(userId) Promise~Record~
+    +isComplete(userId) Promise~boolean~
+    +rebuild(userId, notes) Promise~void~
+  }
+  class KvGraphIndex
+  class MemoryGraphIndex {
+    <<test double>>
+  }
+  class UnitOfWork {
+    <<interface — existing>>
+    +putNote(note)
+    +deleteNote(userId, id)
+  }
+  class NoteService {
+    +graph(userId, opts) Promise~Graph~
+    -loadGraphEntries(userId)
+  }
 
-  Graph "1" *-- "0..*" GraphNode
-  Graph "1" *-- "0..*" GraphEdge
+  Graph *-- GraphNode
+  Graph *-- GraphEdge
   GraphEdge --> EdgeKind
+  GraphIndex <|.. KvGraphIndex
+  GraphIndex <|.. MemoryGraphIndex
+  NoteService --> GraphIndex : reads
+  NoteService ..> GraphBuilder : uses
+  UnitOfWork ..> GraphIndex : writes entry with each note
   GraphBuilder ..> GraphEntry : reads
   GraphBuilder ..> Graph : produces
 ```
 
-```ts
-// lib/zk/types.ts
-export type EdgeKind = 'link' | 'sequence'
+| Class | Responsibility |
+|---|---|
+| `GraphEntry` | What is stored per note in the index. |
+| `GraphNode`, `GraphEdge`, `Graph` | What the API returns and the browser draws. |
+| `GraphBuilder` | Pure functions, with no database access, so they are easy to test. |
+| `GraphIndex` | The storage seam (same pattern as `NoteRepository`): KV in production, in-memory in tests. |
+| `NoteService.graph()` | The only new service method: makes sure the index is complete, reads it, builds the graph. |
 
-export type GraphNode = {
-  id: string
-  title: string
-  type: NoteType
-  address?: string
-  tags: string[]
-  degree: number          // distinct neighbours, any edge kind
-}
-
-export type GraphEdge = {
-  source: string          // smaller id of the pair (edges are undirected on screen)
-  target: string
-  kinds: EdgeKind[]       // ['link'], ['sequence'] or both
-}
-
-export type Graph = {
-  nodes: GraphNode[]
-  edges: GraphEdge[]
-  truncated: boolean      // local graph hit its node cap
-}
-
-export type GraphOptions = {
-  sequence?: boolean      // include Folgezettel edges (default true)
-  types?: NoteType[]      // only these note types (default all)
-  tag?: string
-  hideOrphans?: boolean
-}
-```
-
-**Why undirected edges?**
-- Each note page already lists *Links to* and *Linked from*; the graph is for seeing clusters, and arrowheads add clutter.
-- "Continue this thought" creates both a sequence edge (parent → child) and a link (child → parent, from "Continues [[parent]]"). Merging by the unordered pair draws one line with `kinds: ['link', 'sequence']` instead of two lines on top of each other.
+Edges are **undirected** on screen, so one line is drawn per pair of notes. "Continue this thought" creates both a sequence edge and a "Continues [[parent]]" link between the same two notes; they merge into one line with `kinds: ['link','sequence']`.
 
 ---
 
-## 5. Repository and service changes
+## 4. Algorithm — `buildGraph(entries, opts)`
 
-```mermaid
-classDiagram
-  direction TB
+```
+keep = entry ids that pass the type / tag filters
+byAddress = address → id   (for entries with an address)
 
-  class GraphIndex {
-    <<interface — new>>
-    +all(userId) Promise~Record~string, GraphEntry~~
-    +isComplete(userId) Promise~boolean~
-    +rebuild(userId, notes) Promise~void~
-  }
+edges = map keyed by the pair "smallerId|largerId" → set of kinds
+for each id in keep:
+  for each target in entries[id].l:
+      if target in keep and target ≠ id → add 'link' to pair(id, target)
+  if opts.sequence and entries[id].a:
+      parent = parentAddress(entries[id].a)          // "1a" → "1"
+      if byAddress[parent] in keep → add 'sequence' to pair(byAddress[parent], id)
 
-  class UnitOfWork {
-    <<interface — unchanged signature>>
-    +putNote(note)  // now also HSET zk-graph
-    +deleteNote(userId, id)  // now also HDEL zk-graph
-  }
-
-  class ZkStore {
-    +NoteRepository notes
-    +LinkIndex links
-    +AddressIndex addresses
-    +SourceRepository sources
-    +GraphIndex graph
-    +begin() UnitOfWork
-  }
-
-  class NoteService {
-    +graph(userId, opts) Promise~Graph~
-    +localGraph(userId, id, depth) Promise~Graph~
-    -loadGraphEntries(userId) Promise~Record~
-  }
-
-  class KvGraphIndex
-  class MemoryGraphIndex
-
-  GraphIndex <|.. KvGraphIndex
-  GraphIndex <|.. MemoryGraphIndex
-  ZkStore --> GraphIndex
-  NoteService --> ZkStore
-  NoteService ..> GraphBuilder : uses
+degree[id] = number of edges touching id
+if opts.hideOrphans → remove nodes with degree 0
 ```
 
-```ts
-// lib/zk/service.ts (additions)
-async function loadGraphEntries(userId: string) {
-  if (!(await store.graph.isComplete(userId))) {
-    await store.graph.rebuild(userId, await notes.listAll(userId))
-  }
-  return store.graph.all(userId)
-}
+- Runs in O(notes + links).
+- Links to notes deleted later are skipped by the `in keep` check.
 
-graph(userId, opts)            → buildGraph(await loadGraphEntries(userId), opts)
-localGraph(userId, id, depth)  → requireNote(id); neighbourhood(buildGraph(entries, { sequence: true }), id, depth, 60)
-```
+`seedPosition(id)` hashes the id into a fixed point on a circle. Every node starts from the same place on each visit, so the picture is stable without storing positions anywhere.
 
 ---
 
-## 6. Algorithms (`lib/zk/graph.ts`, all pure and unit-tested)
-
-### 6.1 `toGraphEntry(note)`
-Copies `title, type, address, tags, links` into the short field names.
-
-### 6.2 `buildGraph(entries, opts)`
-```
-ids     = keys(entries) filtered by opts.types / opts.tag
-byAddr  = { entry.a → id  for entries with an address }
-
-pairs = Map<"min|max", Set<EdgeKind>>
-for id in ids:
-  for t in entries[id].l:                       // link edges
-    if t in ids and t != id: pairs[key(id,t)].add('link')
-  if opts.sequence and entries[id].a:           // sequence edges
-    p = parentAddress(entries[id].a)
-    if p and byAddr[p] in ids: pairs[key(byAddr[p], id)].add('sequence')
-
-degree[id] = number of pairs touching id
-if opts.hideOrphans: drop nodes with degree 0
-return { nodes, edges: pairs → GraphEdge[], truncated: false }
-```
-- Stale link targets (a note deleted after it was linked) are dropped by the `t in ids` check.
-- Cost: O(N + E).
-
-### 6.3 `neighbourhood(graph, focus, depth, cap = 60)`
-```
-adjacency from edges (undirected)
-BFS from focus up to `depth` hops, recording visit order
-keep the first `cap` visited nodes (focus first, then all 1-hop nodes, then 2-hop)
-edges = graph edges whose both ends are kept
-truncated = visited > cap
-```
-Because of BFS order, 1-hop neighbours are always kept before any 2-hop ones.
-
-### 6.4 `seedPosition(id)` — stable layout (G7)
-- A tiny string hash of the id becomes an angle and a radius, so each node always starts in the same place.
-- The force simulation then settles from there.
-- The same collection therefore gives the same picture every visit, with no positions stored in the database.
-
----
-
-## 7. API
+## 5. API
 
 | Method | Path | Query | Returns |
 |---|---|---|---|
-| GET | `/api/zk/graph` | `sequence=0\|1` · `types=permanent,structure` · `tag=x` · `orphans=0\|1` | `Graph` |
-| GET | `/api/zk/notes/[id]/graph` | `depth=1\|2` (default 1) | `Graph` (local, `truncated` set if capped) |
+| GET | `/api/zk/graph` | `sequence=0\|1` (default 1) · `types=permanent,structure` · `tag=x` · `orphans=0\|1` | `Graph` |
 
-- Both need a session (401 otherwise) and are scoped to `session.userId`.
-- An unknown note id returns 404 via `NotFoundError`.
-- The pages render their first graph on the server (passing `Graph` as props). The API is used when filters or depth change.
+- Needs a session (401 otherwise) and is scoped to `session.userId`.
+- The page renders the first graph on the server; the API is called only when filters change.
 
 ---
 
-## 8. Sequence diagrams
+## 6. Flows
 
-### 8.1 Open `/zk/graph`
+### 6.1 Opening `/zk/graph`
 ```mermaid
 sequenceDiagram
   actor U as User
-  participant P as /zk/graph (server component)
+  participant P as /zk/graph (server)
   participant S as NoteService
   participant G as GraphIndex (KV)
-  participant C as GraphCanvas (client)
+  participant C as GraphCanvas (browser)
 
   U->>P: open /zk/graph
   P->>S: graph(userId, defaults)
-  S->>G: isComplete(userId)  (HLEN + SCARD, pipelined)
-  alt index incomplete (first visit after deploy)
-    S->>S: notes.listAll(userId)  (one-off MGET)
-    S->>G: rebuild(userId, notes)  (DEL + HSET×N in MULTI)
+  S->>G: isComplete? (HLEN vs SCARD)
+  alt first visit after deploy
+    S->>G: rebuild from all notes (one-off)
   end
-  S->>G: all(userId)  (HGETALL zk-graph)
+  S->>G: all() — HGETALL zk-graph
   S->>S: buildGraph(entries, opts)
   S-->>P: Graph
-  P-->>C: props { graph }
-  C->>C: seed positions, run d3-force, render SVG
-  U->>C: change filter
-  C->>P: GET /api/zk/graph?…  (re-fetch)
-  C->>C: update simulation (positions of kept nodes preserved)
+  P-->>C: props
+  C->>C: seed positions → d3-force settles → draw SVG
+  U->>C: change a filter
+  C->>P: GET /api/zk/graph?… (dots already on screen keep their place)
 ```
 
-### 8.2 Saving a note keeps the graph current
+### 6.2 Saving a note
 ```mermaid
 sequenceDiagram
   participant S as NoteService.update
-  participant W as UnitOfWork (KV MULTI)
-  S->>W: putNote(next)      → SET note, SADD notes, HSET zk-graph
-  S->>W: addBacklink × added, removeBacklink × removed
-  W->>W: commit()           (one MULTI/EXEC)
-```
-
-### 8.3 Local graph on a note page
-```mermaid
-sequenceDiagram
-  participant P as /zk/[id] (server)
-  participant S as NoteService
-  participant L as LocalGraph (client)
-  P->>S: getView(id) and localGraph(id, depth=1)  (parallel)
-  S->>S: loadGraphEntries → buildGraph → neighbourhood(id, 1, 60)
-  P-->>L: props { graph, focusId }
-  L->>L: focus node fixed at centre; others settle around it
-  L->>P: depth toggle 2 → GET /api/zk/notes/[id]/graph?depth=2
+  participant W as UnitOfWork (one MULTI)
+  S->>W: putNote → SET note, SADD notes, HSET zk-graph
+  S->>W: add/remove backlinks
+  W->>W: commit()
 ```
 
 ---
 
-## 9. UI design
+## 7. UI
 
-### 9.1 `/zk/graph` (whole collection)
 ```
-┌────────────────────────────────────────────────────────────┐
-│ Graph                                    42 notes · 57 edges │
-├────────────────────────────────────────────────────────────┤
-│ [search…]   ☑ fleeting ☑ literature ☑ permanent ☑ structure │
-│ ☑ sequence edges   ☐ hide orphans   #tag ▾        [reset]   │
-├────────────────────────────────────────────────────────────┤
-│                                                              │
-│         ●───●            ◆                                   │
-│        /     \          /                                    │
-│   ○───●       ●───◆───●        ●                             │
-│                    ┊                                         │
-│                    ●   (dashed = sequence)                   │
-│                                                              │
-├────────────────────────────────────────────────────────────┤
-│ ● permanent  ○ fleeting  ◆ structure  ▪ literature   — link ┊ sequence │
-└────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│ ← Notes        Graph                      42 notes · 57 lines │
+├──────────────────────────────────────────────────────────────┤
+│ [search…]  ☑ fleeting ☑ literature ☑ permanent ☑ structure   │
+│ ☑ sequence lines   ☐ hide orphans   #tag ▾                    │
+├──────────────────────────────────────────────────────────────┤
+│        ●───●            ◆                                     │
+│       /     \          /                                      │
+│  ○───●       ●───◆───●        ●                               │
+│                   ┊                                           │
+│                   ●                                           │
+├──────────────────────────────────────────────────────────────┤
+│ ● permanent ◆ structure ▪ literature ○ fleeting │ — link ┊ sequence │
+└──────────────────────────────────────────────────────────────┘
 ```
-- Reached from a "Graph" link in the `/zk` header. It isn't a separate Nav entry.
-- **Nodes:**
-  - shape and tone show the note type (see §9.3);
-  - radius is `4 + 2·√degree`;
-  - labels show for hovered and focused nodes, and for all nodes once zoomed in past 1.5×.
-- **Edges:** a solid hairline for links and a dashed hairline for sequence. An edge that is both is drawn solid.
-- **Hover:** the node and its neighbours stay full strength; everything else fades to 15%.
-- **Click** opens `/zk/{id}`. **Drag** pins the node; double-click unpins it.
-- **Search:** picking a result centres and highlights that node, reusing `useNoteSearch` over the node titles.
-- **Empty state:** "No connections yet — link notes with [[ in the editor."
+- Reached from a "Graph" link on the Notes home page.
+- **Note type uses shape and ink tone, not colour** (the app's design rule):
+  - ● permanent
+  - ◆ structure
+  - ▪ literature
+  - ○ fleeting
+- **Size:** the radius is `4 + 2·√connections`.
+- **Lines:** solid for links, dashed for sequence.
+- **Hover:** the note and its neighbours stay sharp; everything else fades.
+- **Labels:** shown on hover and once zoomed in.
+- **Pointer:** click opens the note, drag pins it, double-click unpins it.
 
-### 9.2 Local graph on the note page
-- It sits between the body and the *Links to / Linked from* lists, about 280 px tall and full column width.
-- The current note is fixed at the centre and drawn larger.
-- A "1 hop · 2 hops" toggle switches depth, and "Open full graph →" opens `/zk/graph?focus={id}` with that note centred.
-- It is hidden when the note has no connections, so it doesn't show a single lonely dot.
-
-### 9.3 Visual encoding
-
-The app's design rule is "no accent colour; emphasis is weight and darkness". So note type is shown with **shape plus ink tone**, not hue:
-
-| Type | Mark |
-|---|---|
-| permanent | filled circle, `--ink` |
-| structure | filled diamond, `--ink`, larger minimum size |
-| literature | filled square, `--ink-2` |
-| fleeting | hollow circle, `--ink-3` stroke |
-
-These are re-checked against the dataviz guidelines during the build, so the marks stay readable on the paper background.
+**Components:**
+- `GraphView` handles filters, search, legend and refetching.
+- `GraphCanvas` is the only code where d3 touches the page. It uses `d3-force` (springs and repulsion), `d3-zoom`, `d3-drag` and `d3-selection`, about 30 KB.
 
 ---
 
-## 10. Rendering and components
-
-```mermaid
-flowchart LR
-  subgraph Server
-    GP["app/zk/graph/page.tsx"]
-    NP["app/zk/[id]/page.tsx"]
-  end
-  subgraph Client["components/zk/graph/"]
-    GV["GraphView — filters, search, legend, fetch on change"]
-    GC["GraphCanvas — SVG + d3-force/zoom/drag (shared)"]
-    LG["LocalGraph — depth toggle, fixed focus"]
-  end
-  GP --> GV --> GC
-  NP --> LG --> GC
+## 8. Files
 ```
-
-- **`GraphCanvas`** is the one place d3 touches the DOM, inside `useEffect`. React owns the container; d3 owns the `<g>` it creates. Props are `{ graph, focusId?, highlight?, height }`.
-  - **Forces:** `forceLink` (distance 40; sequence edges 30 and stronger), `forceManyBody` (−80), `forceCollide` (radius + 2) and `forceCenter`.
-  - **Rerender:** when `graph` changes, nodes that already exist keep their x/y (looked up by id), and the simulation reheats gently (alpha 0.3) instead of restarting.
-  - **Cleanup:** unmounting stops the simulation and removes listeners.
-- **Dependencies:** `d3-force`, `d3-zoom`, `d3-drag`, `d3-selection` (plus `@types/*` in dev), about 30 KB gzipped. These are the d3 modules only, not the whole library.
-
----
-
-## 11. Performance and limits
-
-| Notes | Plan |
-|---|---|
-| ≤ 1,500 | SVG as designed. |
-| 1,500 – 5,000 | Same data; switch `GraphCanvas` to draw on `<canvas>` (same simulation code, different draw function). Not built now; the component boundary allows it. |
-| > 5,000 | Server-side filtering by type and tag becomes the default; the full graph is opt-in. |
-
-Server cost per graph load: `HLEN` + `SCARD` (pipelined) + `HGETALL`, then O(N + E) in memory. No note bodies are read.
-
----
-
-## 12. File layout
-```
-lib/zk/graph.ts                     toGraphEntry, buildGraph, neighbourhood, seedPosition (pure)
+lib/zk/graph.ts                  GraphBuilder (pure)
 lib/zk/graph.test.ts
-lib/zk/types.ts                     + GraphEntry, GraphNode, GraphEdge, Graph, GraphOptions
-lib/zk/repo.ts                      + GraphIndex interface, memory impl, ZkStore.graph
-lib/zk/kv-repo.ts                   + KvGraphIndex; putNote/deleteNote also write zk-graph
-lib/zk/service.ts                   + graph(), localGraph()
+lib/zk/types.ts                  + GraphEntry, GraphNode, GraphEdge, Graph, GraphOptions
+lib/zk/repo.ts                   + GraphIndex interface, in-memory impl, ZkStore.graph
+lib/zk/kv-repo.ts                + KvGraphIndex; putNote/deleteNote also write zk-graph
+lib/zk/service.ts                + graph()
 app/api/zk/graph/route.ts
-app/api/zk/notes/[id]/graph/route.ts
 app/zk/graph/page.tsx
-app/zk/[id]/page.tsx                + localGraph in the parallel load
-components/zk/graph/GraphCanvas.tsx
 components/zk/graph/GraphView.tsx
-components/zk/graph/LocalGraph.tsx
+components/zk/graph/GraphCanvas.tsx
 ```
 
-## 13. Testing
-| What | Tests |
-|---|---|
-| `buildGraph` | link edges; sequence edges from addresses; merging of link + sequence on the same pair; stale targets dropped; self-links ignored; type, tag and orphan filters; degree counts |
-| `neighbourhood` | depth 1 vs 2; cap keeps all 1-hop nodes before any 2-hop; `truncated` flag; unknown focus |
-| `seedPosition` | same id gives the same point; ids spread around the circle |
-| Index consistency (memory store) | after create / update / promote / continue / delete / review-bridge, `graph.all()` equals `toGraphEntry` of every note; rebuild after deleting the index restores it |
-| UI | headless browser: graph renders, hover highlights, click navigates, filter refetches, local graph depth toggle, 390 px layout |
+## 9. Tests
+- **`buildGraph`:**
+  - link and sequence edges, and merging them;
+  - stale targets and self-links skipped;
+  - type, tag and orphan filters;
+  - degree counts.
+- **`seedPosition`:** same id gives the same point.
+- **Index consistency:** after create / edit / promote / continue / delete / review-bridge, the index equals `toGraphEntry` of every note. Deleting the index and loading the graph rebuilds it.
+- **Browser check:**
+  - the graph renders;
+  - hover highlights;
+  - click navigates;
+  - filters refetch;
+  - no horizontal scroll at 390 px.
 
-## 14. Open questions
-1. **PR placement:** a new PR (`feature/zettelkasten-graph`) stacked on PR #5, or added to PR #5?
-2. **Sequence edges** on by default (current design), or off by default?
-3. **Type encoding:** shape plus ink tone (current design, matches the no-colour style), or allow one muted colour per type?
+## 10. Deferred
+- Local graph on each note page.
+- `<canvas>` rendering for collections larger than ~1,500 notes.
