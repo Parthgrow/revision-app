@@ -1,5 +1,6 @@
 import { kv } from '@vercel/kv'
-import type { Note, Source } from './types'
+import type { GraphEntry, Note, Source } from './types'
+import { toGraphEntry } from './graph'
 import type { ZkStore, UnitOfWork } from './repo'
 
 // Key layout (alongside the existing user:/item:/mp: keys):
@@ -11,6 +12,7 @@ import type { ZkStore, UnitOfWork } from './repo'
 //   source:{u}:{id}                 Source JSON
 //   user:{u}:sources                set of source ids
 //   source:{u}:{id}:notes           set of literature note ids citing it
+//   user:{u}:zk-graph               hash note id → GraphEntry (derived)
 
 const noteKey = (u: string, id: string) => `note:${u}:${id}`
 const notesSet = (u: string) => `user:${u}:notes`
@@ -20,6 +22,7 @@ const addrCounter = (u: string, parent: string | null) => `user:${u}:zk-addr-nex
 const sourceKey = (u: string, id: string) => `source:${u}:${id}`
 const sourcesSet = (u: string) => `user:${u}:sources`
 const sourceNotesKey = (u: string, id: string) => `source:${u}:${id}:notes`
+const graphHash = (u: string) => `user:${u}:zk-graph`
 
 async function mgetNotes(userId: string, ids: string[]): Promise<Note[]> {
   if (ids.length === 0) return []
@@ -43,11 +46,13 @@ function begin(): UnitOfWork {
       q(() => {
         tx.set(noteKey(note.userId, note.id), note)
         tx.sadd(notesSet(note.userId), note.id)
+        tx.hset(graphHash(note.userId), { [note.id]: JSON.stringify(toGraphEntry(note)) })
       }),
     deleteNote: (u, id) =>
       q(() => {
         tx.del(noteKey(u, id), backlinksKey(u, id))
         tx.srem(notesSet(u), id)
+        tx.hdel(graphHash(u), id)
       }),
     addBacklink: (u, target, from) => q(() => tx.sadd(backlinksKey(u, target), from)),
     removeBacklink: (u, target, from) => q(() => tx.srem(backlinksKey(u, target), from)),
@@ -116,6 +121,27 @@ export const kvStore: ZkStore = {
     },
     async noteIds(u, sid) {
       return asStrings(await kv.smembers(sourceNotesKey(u, sid)))
+    },
+  },
+  graph: {
+    async all(u) {
+      const h = await kv.hgetall<Record<string, unknown>>(graphHash(u))
+      // Values are JSON strings; KV may already have parsed them.
+      return Object.fromEntries(
+        Object.entries(h ?? {}).map(([id, v]) => [id, (typeof v === 'string' ? JSON.parse(v) : v) as GraphEntry])
+      )
+    },
+    async isComplete(u) {
+      const [cards, total] = await Promise.all([kv.hlen(graphHash(u)), kv.scard(notesSet(u))])
+      return cards === total
+    },
+    async rebuild(u, list) {
+      const tx = kv.multi()
+      tx.del(graphHash(u))
+      if (list.length > 0) {
+        tx.hset(graphHash(u), Object.fromEntries(list.map((n) => [n.id, JSON.stringify(toGraphEntry(n))])))
+      }
+      await tx.exec()
     },
   },
   begin,

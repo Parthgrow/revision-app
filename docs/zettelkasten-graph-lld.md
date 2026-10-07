@@ -1,6 +1,6 @@
 # Zettelkasten Graph View — Low-Level Design
 
-Status: **Draft for review**
+Status: **Implemented** (see §11 for details settled during the build)
 Builds on: `docs/zettelkasten-lld.md` (notes, links, backlinks, Folgezettel addresses).
 Scope: **the whole-collection graph at `/zk/graph` only.** The per-note local graph is deferred.
 
@@ -346,3 +346,17 @@ components/zk/graph/GraphCanvas.tsx
 ## 10. Deferred
 - Local graph on each note page.
 - `<canvas>` rendering for collections larger than ~1,500 notes.
+
+## 11. Implementation notes
+- **No animation on load.** The layout is settled before the first paint: 300 simulation steps from each note's seed position. After a filter change, notes already on screen only get a gentle 80-step settle, so the picture stays put. Dragging restarts the simulation; with reduced motion the dragged note just moves.
+- **Labels:** every title shows when the graph has fewer than 30 notes; otherwise titles appear on hover, on the searched note, and when zoomed in past 1.4×.
+  - In small graphs each note's collision radius includes room for its title, so labels don't overlap.
+- **Fit to view** measures everything drawn, labels included. It never zooms in past 1.25×, and it stops re-fitting once you have zoomed or panned yourself.
+- **Accessibility:**
+  - every note has a hit area larger than its mark;
+  - a hover tooltip shows title, type, address and connection count;
+  - the legend is always shown;
+  - a "Connections as a list" section gives the same information as text links.
+- **Filter changes refetch** `GET /api/zk/graph`, cancelling any request still in flight.
+- Search matches titles and addresses among the visible notes. `/zk/graph?focus={id}` opens the graph centred on a note.
+
