@@ -98,6 +98,9 @@ export default function ZkHomeClient({ initial }: { initial: NoteSummary[] }) {
             <Link href="/zk/sources" className={`text-[14px] ${link}`}>
               Sources
             </Link>
+            <Link href="/zk/graph" className={`text-[14px] ${link}`}>
+              Graph
+            </Link>
             <button type="submit" disabled={saving || !capture.trim()} className={btnPrimary}>
               {saving ? 'Saving…' : 'Capture'}
             </button>
