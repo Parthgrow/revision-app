@@ -1,6 +1,6 @@
 # Context — Design (HLD · LLD · Database schema)
 
-Status: **Draft for review**
+Status: **Implemented** (decisions in §0; build notes at the end)
 
 Context is a separate module in MindGym. You create **projects**, and each project holds its design documents as separate files:
 
@@ -484,86 +484,21 @@ Database schema                HLD                          LLD: <title>
 ## What writes what            ## Data flow (ASCII flow)    ## Storage changes
 ## Example records             ## External services         ## Algorithms
                                ## Non-functional reqs       ## API (table)
-                               ## Open questions            ## Sequence (ASCII lifelines)
-                                                            ## Edge cases
-                                                            ## Tests
-```
+                               ## Decisions (answered) and build notes
 
-Each template contains a starter ASCII diagram, so the expected style is clear from the first edit.
-
-## 3.9 PDF / print layout (option A)
-
-```
-/context/[pid]/print?doc=<did>|all
-  ┌──────────────── A4 page ────────────────┐
-  │ MindGym — HLD               12 Oct 2026 │  header: project · doc · date
-  │─────────────────────────────────────────│
-  │ rendered markdown, serif body           │
-  │ ASCII blocks in monospace, 8.5pt,       │  smaller font so ~100-column
-  │ never split across pages                │  diagrams fit the page width
-  │ …                                       │
-  │                                  page 2 │
-  └─────────────────────────────────────────┘
-  doc=all: cover page with project name + contents, then each document,
-           each starting on a new page.
-```
-- No menu, nav or buttons.
-- The page opens the save dialog on load, and the file name is suggested as `MindGym – HLD.pdf`.
-
-## 3.10 Files
-
-```
-lib/context/
-  types.ts          Project, ContextDoc, DocKind, TocEntry, inputs
-  errors.ts         CtxError, CtxNotFoundError, CtxValidationError, CtxStaleWriteError
-  templates.ts      schema / HLD / LLD templates, DIAGRAM_SNIPPETS, BOX_CHARS
-  repo.ts           ProjectRepository, DocRepository, UnitOfWork, CtxStore, memory impl
-  kv-repo.ts        Redis impl (ctx:… keys)
-  service.ts        createContextService
-  index.ts          production wiring + ctxErrorResponse()
-  service.test.ts   tests
-app/api/context/projects/route.ts
-app/api/context/projects/[pid]/route.ts
-app/api/context/projects/[pid]/docs/route.ts
-app/api/context/projects/[pid]/docs/[did]/route.ts
-app/context/page.tsx                      project list
-app/context/[pid]/page.tsx                → opens HLD
-app/context/[pid]/[did]/page.tsx          menu + document
-app/context/[pid]/print/page.tsx          print layout
-components/context/
-  ProjectList.tsx  DocMenu.tsx  DocView.tsx  DocEditor.tsx
-  DiagramPalette.tsx  CtxMarkdown.tsx  MermaidBlock.tsx (lazy)
-```
-New dependencies: `remark-gfm`; `mermaid` (loaded only when a document needs it); the JetBrains Mono font through `next/font`.
-
-## 3.11 Tests
-
-| Area | Cases |
+| Question | Decision |
 |---|---|
-| Create project | creates schema and HLD with templates in one transaction; toc lists exactly those two |
-| Core docs | schema and HLD can't be deleted or renamed; their bodies can be edited |
-| LLDs | add, rename (toc title updates), delete; limit of 100; title validation |
-| Ownership | a document fetched under another project's id is 404; another user's keys are never touched |
-| Stale save | old `expectedUpdatedAt` → 409 carrying the current doc; `force` overwrites |
-| Delete project | every `ctx:` key for that project is gone; other projects untouched |
-| Ordering | toc order: schema, HLD, then LLDs by creation time; the project list is sorted by `updatedAt` |
-| Browser | create project → edit HLD with an ASCII diagram → alignment is preserved in the view and the print page; phone layout with no sideways page scroll |
+| PDF | **Option A:** a print page (`/context/[pid]/print?doc=<id>\|all`) that opens the browser's save dialog |
+| Mermaid | **Not included.** ASCII only. |
+| Nav label | **Context** |
+| LLD order in the menu | **By creation time** |
 
-## 3.12 Edge cases
-
-| Case | Behaviour |
-|---|---|
-| Very wide ASCII diagram | Scrolls sideways on screen. In the PDF the code font shrinks to fit about 100 columns; anything wider is clipped at the page edge, and a note in the editor warns about lines over 100 characters. |
-| Tabs inside diagrams | Converted to 2 spaces on save so columns don't shift between viewers. |
-| Deleting the LLD you're viewing | Goes to the HLD. |
-| Unknown or deleted doc id in the URL | Shows "Document not found" with the menu still visible. |
-| Two tabs editing one doc | 409 conflict dialog (load theirs / overwrite with mine), same as notes. No history is kept. |
-
----
-
-# Open questions
-
-1. **PDF:** option A (print page and the browser's "Save as PDF") to start, or straight to B (server-generated file, one click)?
-2. **Mermaid:** include it as the secondary diagram option, or ASCII only?
-3. **Nav label:** "Context" (as planned)?
-4. **LLD order** in the menu: by creation time (planned), or alphabetical?
+Build notes:
+- **Templates:** they start with a one-line intro instead of a `#` heading, so the document title isn't shown twice.
+- **Diagram line height:** fenced blocks use a line height of 1.25, so vertical box lines (`│`) join up across rows.
+- **PDF:**
+  - prints on white;
+  - the file name comes from the page title (`<project> – <document>`);
+  - on screen, a toolbar offers *Save as PDF* again and *Back to the document*.
+- **Nav:** on phones the nav strip now wraps, because six entries no longer fit on one line at 390 px.
+- **Isolation:** Context has its own UI helpers (`components/context/ui.ts`) and imports nothing from `lib/zk` or `components/zk`.
