@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
 
 @import "tailwindcss";
 
@@ -200,4 +201,77 @@ input, textarea, button, select {
 .zk-graph .node, .zk-graph .edge { transition: opacity 120ms ease; }
 @media (prefers-reduced-motion: reduce) {
   .zk-graph .node, .zk-graph .edge { transition: none; }
+}
+
+/* Context documents. Diagrams are ASCII, so every fenced block uses a
+   monospace face with full box-drawing glyphs and never wraps. */
+:root {
+  --ctx-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.ctx-mono { font-family: var(--ctx-mono); }
+.ctx-prose {
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--ink);
+  min-width: 0;
+}
+.ctx-prose > * + * { margin-top: 0.85em; }
+.ctx-prose h1, .ctx-prose h2, .ctx-prose h3, .ctx-prose h4 {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+  text-wrap: balance;
+}
+.ctx-prose h1 { font-size: 1.55em; }
+.ctx-prose h2 { font-size: 1.25em; margin-top: 1.6em; padding-bottom: 0.25em; border-bottom: 1px solid var(--rule); }
+.ctx-prose h3 { font-size: 1.08em; margin-top: 1.3em; }
+.ctx-prose ul, .ctx-prose ol { padding-left: 1.4em; }
+.ctx-prose ul { list-style: disc; }
+.ctx-prose ol { list-style: decimal; }
+.ctx-prose li + li { margin-top: 0.2em; }
+.ctx-prose blockquote { border-left: 2px solid var(--rule); padding-left: 1em; color: var(--ink-2); }
+.ctx-prose a { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: var(--ink-4); }
+.ctx-prose hr { border: none; border-top: 1px solid var(--rule); }
+.ctx-prose code {
+  font-family: var(--ctx-mono);
+  font-size: 0.82em;
+  background: var(--paper-2);
+  padding: 0.1em 0.3em;
+}
+.ctx-prose pre {
+  font-family: var(--ctx-mono);
+  font-size: 13.5px;
+  line-height: 1.25; /* tight enough that │ and box corners join up */
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  padding: 14px 16px;
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 2;
+  font-variant-ligatures: none;
+}
+.ctx-prose pre code { background: none; padding: 0; font-size: inherit; }
+.ctx-table { overflow-x: auto; }
+.ctx-prose table { border-collapse: collapse; font-size: 15px; min-width: 50%; }
+.ctx-prose th, .ctx-prose td { border: 1px solid var(--rule); padding: 6px 10px; text-align: left; vertical-align: top; }
+.ctx-prose th { background: var(--paper-2); font-weight: 600; }
+
+/* Print page: A4, diagrams small enough that ~100 columns fit the width,
+   and never split across pages. */
+@media print {
+  .no-print { display: none !important; }
+  @page { size: A4; margin: 16mm 14mm; }
+  body, .ctx-print-root { background: #fff !important; }
+  .ctx-print { padding: 0 !important; max-width: none !important; }
+  .ctx-print .ctx-prose { font-size: 10.5pt; }
+  .ctx-print .ctx-prose pre {
+    font-size: 8.5pt;
+    break-inside: avoid;
+    overflow: visible;
+    background: #fff;
+  }
+  .ctx-print .ctx-prose table, .ctx-print .ctx-prose tr { break-inside: avoid; }
+  .ctx-print .ctx-prose h2, .ctx-print .ctx-prose h3 { break-after: avoid; }
+  .ctx-print .print-doc + .print-doc,
+  .ctx-print .print-cover + .print-doc { break-before: page; }
 }

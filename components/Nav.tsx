@@ -16,6 +16,7 @@ export default function Nav() {
   const links = [
     { href: '/', label: 'Review' },
     { href: '/zk', label: 'Notes' },
+    { href: '/context', label: 'Context' },
     { href: '/mp', label: 'Palace' },
     { href: '/add', label: 'Add' },
   ]
@@ -27,7 +28,7 @@ export default function Nav() {
       className="
         shrink-0 border-b border-[var(--rule)]
         px-6 py-4
-        flex flex-row items-baseline gap-4
+        flex flex-row flex-wrap items-baseline gap-x-4 gap-y-2
         sm:w-[168px] sm:min-h-screen sm:border-b-0 sm:border-r
         sm:px-7 sm:py-10 sm:flex-col sm:items-stretch sm:gap-0
       "
@@ -39,7 +40,7 @@ export default function Nav() {
         MindGym
       </Link>
 
-      <div className="flex flex-row items-baseline gap-3.5 sm:flex-col sm:items-stretch sm:gap-1">
+      <div className="flex flex-row flex-wrap items-baseline gap-x-3.5 gap-y-1 sm:flex-col sm:items-stretch sm:gap-1">
         {links.map((l) => {
           const active = l.href === '/' ? pathname === '/' : pathname.startsWith(l.href)
           return (
