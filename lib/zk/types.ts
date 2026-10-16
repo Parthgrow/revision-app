@@ -85,3 +85,46 @@ export type CreateSourceInput = {
   url?: string
   year?: number
 }
+
+// --- Graph view ---
+
+// One small card per note in user:{u}:zk-graph. Short keys keep the whole
+// index small enough to load in one read without any note bodies.
+export type GraphEntry = {
+  t: string     // title
+  y: NoteType   // type
+  a?: string    // Folgezettel address
+  g: string[]   // tags
+  l: string[]   // outgoing link targets (= Note.links)
+}
+
+export type EdgeKind = 'link' | 'sequence'
+
+export type GraphNode = {
+  id: string
+  title: string
+  type: NoteType
+  address?: string
+  tags: string[]
+  degree: number // distinct neighbours, any edge kind
+}
+
+// Undirected on screen: one edge per pair of notes, carrying every kind of
+// connection between them.
+export type GraphEdge = {
+  source: string
+  target: string
+  kinds: EdgeKind[]
+}
+
+export type Graph = {
+  nodes: GraphNode[]
+  edges: GraphEdge[]
+}
+
+export type GraphOptions = {
+  sequence?: boolean   // include Folgezettel parent → child edges (default true)
+  types?: NoteType[]   // only these note types (default all)
+  tag?: string
+  hideOrphans?: boolean
+}

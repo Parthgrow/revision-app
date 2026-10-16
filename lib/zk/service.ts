@@ -3,9 +3,12 @@ import { childAddress, compareAddresses, isValidAddress, parentAddress } from '.
 import { NotFoundError, StaleWriteError, ValidationError, AddressTakenError } from './errors'
 import { extractIds, formatLink, NOTE_ID_LENGTH } from './links'
 import type { ZkStore } from './repo'
+import { buildGraph } from './graph'
 import type {
   CreateNoteInput,
   CreateSourceInput,
+  Graph,
+  GraphOptions,
   Note,
   NoteSummary,
   NoteType,
@@ -330,6 +333,17 @@ export function createNoteService(store: ZkStore, now: () => number = Date.now) 
       uow.putNote(next)
       await uow.commit()
       return next
+    },
+
+    // --- graph ---
+
+    // Reads the graph index (rebuilding it first if it's missing cards, e.g.
+    // notes written before the index existed) and turns it into nodes/edges.
+    async graph(userId: string, opts: GraphOptions = {}): Promise<Graph> {
+      if (!(await store.graph.isComplete(userId))) {
+        await store.graph.rebuild(userId, await notes.listAll(userId))
+      }
+      return buildGraph(await store.graph.all(userId), opts)
     },
 
     // --- sources ---

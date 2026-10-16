@@ -1,4 +1,5 @@
-import type { Note, Source } from './types'
+import type { GraphEntry, Note, Source } from './types'
+import { toGraphEntry } from './graph'
 
 // Storage seams for the Zettelkasten. Services depend only on these, so tests
 // run against createMemoryStore() and production against the KV store.
@@ -29,11 +30,20 @@ export interface SourceRepository {
   noteIds(userId: string, sourceId: string): Promise<string[]>
 }
 
+// The graph index: one small card per note (title, type, address, tags,
+// links). Derived from the notes, so it can always be rebuilt.
+export interface GraphIndex {
+  all(userId: string): Promise<Record<string, GraphEntry>>
+  // True when there is exactly one card per note.
+  isComplete(userId: string): Promise<boolean>
+  rebuild(userId: string, notes: Note[]): Promise<void>
+}
+
 // Multi-key writes are queued and applied together in commit(), so a note and
 // the backlink sets that mirror its links can't drift apart.
 export interface UnitOfWork {
-  putNote(note: Note): void
-  deleteNote(userId: string, id: string): void
+  putNote(note: Note): void // also writes the note's graph card
+  deleteNote(userId: string, id: string): void // also removes it
   addBacklink(userId: string, target: string, from: string): void
   removeBacklink(userId: string, target: string, from: string): void
   putSource(source: Source): void
@@ -48,6 +58,7 @@ export type ZkStore = {
   links: LinkIndex
   addresses: AddressIndex
   sources: SourceRepository
+  graph: GraphIndex
   begin(): UnitOfWork
 }
 
@@ -60,6 +71,7 @@ export function createMemoryStore(): ZkStore {
   const counters = new Map<string, number>()
   const sources = new Map<string, Source>()
   const sourceNotes = new Map<string, Set<string>>()
+  const graph = new Map<string, Map<string, GraphEntry>>() // userId → id → card
 
   const k = (userId: string, id: string) => `${userId}:${id}`
   const setOf = (m: Map<string, Set<string>>, key: string) => {
@@ -71,6 +83,10 @@ export function createMemoryStore(): ZkStore {
     return addresses.get(userId)!
   }
   const clone = <T>(v: T): T => structuredClone(v)
+  const graphOf = (userId: string) => {
+    if (!graph.has(userId)) graph.set(userId, new Map())
+    return graph.get(userId)!
+  }
 
   return {
     notes: {
@@ -125,14 +141,31 @@ export function createMemoryStore(): ZkStore {
         return [...(sourceNotes.get(k(userId, sourceId)) ?? [])]
       },
     },
+    graph: {
+      async all(userId) {
+        return clone(Object.fromEntries(graphOf(userId)))
+      },
+      async isComplete(userId) {
+        const count = [...notes.values()].filter((n) => n.userId === userId).length
+        return graphOf(userId).size === count
+      },
+      async rebuild(userId, list) {
+        graph.set(userId, new Map(list.map((n) => [n.id, toGraphEntry(n)])))
+      },
+    },
     begin() {
       const ops: (() => void)[] = []
       return {
-        putNote: (note) => ops.push(() => notes.set(k(note.userId, note.id), clone(note))),
+        putNote: (note) =>
+          ops.push(() => {
+            notes.set(k(note.userId, note.id), clone(note))
+            graphOf(note.userId).set(note.id, toGraphEntry(note))
+          }),
         deleteNote: (userId, id) =>
           ops.push(() => {
             notes.delete(k(userId, id))
             backlinks.delete(k(userId, id))
+            graphOf(userId).delete(id)
           }),
         addBacklink: (userId, target, from) => ops.push(() => setOf(backlinks, k(userId, target)).add(from)),
         removeBacklink: (userId, target, from) => ops.push(() => backlinks.get(k(userId, target))?.delete(from)),

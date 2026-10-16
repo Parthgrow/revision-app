@@ -145,3 +145,59 @@ input, textarea, button, select {
   cursor: help;
 }
 .zk-prose hr { border: none; border-top: 1px solid var(--rule); }
+
+/* Zettelkasten graph. Shape and ink tone carry note type; no hue. Filled
+   marks get a paper-coloured ring so overlapping marks stay separate. */
+.zk-graph svg { cursor: grab; }
+.zk-graph svg:active { cursor: grabbing; }
+.zk-graph .edge,
+.zk-graph-mark .edge {
+  stroke: var(--ink-4);
+  stroke-width: 1.2px;
+  fill: none;
+}
+.zk-graph .edge-sequence,
+.zk-graph-mark .edge-sequence { stroke-dasharray: 4 3; }
+.zk-graph .node { cursor: pointer; }
+.zk-graph .node path,
+.zk-graph-mark path {
+  stroke: var(--paper);
+  stroke-width: 2px;
+}
+.node-permanent,
+.zk-graph .node-permanent path { fill: var(--ink); }
+.node-structure,
+.zk-graph .node-structure path { fill: var(--ink); }
+.node-literature,
+.zk-graph .node-literature path { fill: var(--ink-2); }
+.zk-graph-mark path.node-fleeting,
+.zk-graph .node-fleeting path {
+  fill: var(--paper);
+  stroke: var(--ink-3);
+  stroke-width: 1.5px;
+}
+.zk-graph .hit { fill: transparent; }
+.zk-graph .label {
+  font-size: 13px;
+  fill: var(--ink-2);
+  paint-order: stroke;
+  stroke: var(--paper);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+  display: none;
+}
+.zk-graph svg.show-labels .label,
+.zk-graph .node.is-hovered .label,
+.zk-graph .node.is-focus .label,
+.zk-graph svg.is-hovering .node.is-near .label { display: block; }
+.zk-graph .node.is-hovered .label,
+.zk-graph .node.is-focus .label { fill: var(--ink); font-weight: 600; }
+.zk-graph svg.is-hovering .node:not(.is-near),
+.zk-graph svg.is-hovering .edge:not(.is-near) { opacity: 0.15; }
+.zk-graph svg.is-hovering .edge.is-near { stroke: var(--ink-2); }
+.zk-graph .node.is-focus path { stroke: var(--ink); stroke-width: 2.5px; }
+.zk-graph .node, .zk-graph .edge { transition: opacity 120ms ease; }
+@media (prefers-reduced-motion: reduce) {
+  .zk-graph .node, .zk-graph .edge { transition: none; }
+}
