@@ -79,7 +79,7 @@ export function createContextService(store: CtxStore, now: () => number = Date.n
     return { project, entries: sortToc(entries) }
   }
 
-  return {
+  const service = {
     async listProjects(userId: string): Promise<ProjectSummary[]> {
       const ids = await projects.listIds(userId)
       const [list, counts] = await Promise.all([projects.getMany(userId, ids), projects.docCounts(userId, ids)])
@@ -215,7 +215,75 @@ export function createContextService(store: CtxStore, now: () => number = Date.n
       const byId = new Map(loaded.map((d) => [d.id, d]))
       return { project, docs: entries.map((e) => byId.get(e.id)).filter((d): d is ContextDoc => !!d) }
     },
+
+    // --- lookups by name (used by the Claude connector) ---
+
+    // A project by id, or by its name (case-insensitive).
+    async findProject(userId: string, ref: string): Promise<Project> {
+      const key = String(ref ?? '').trim()
+      if (!key) throw new CtxValidationError('Name a project')
+      const byId = await projects.get(userId, key)
+      if (byId) return byId
+      const all = await projects.getMany(userId, await projects.listIds(userId))
+      const matches = all.filter((p) => p.name.toLowerCase() === key.toLowerCase())
+      if (matches.length === 1) return matches[0]
+      if (matches.length > 1) {
+        throw new CtxValidationError(
+          `${matches.length} projects are named “${key}”. Use an id: ${matches.map((p) => p.id).join(', ')}`
+        )
+      }
+      throw new CtxNotFoundError(`Project “${key}”`)
+    },
+
+    // A document in a project by id, "schema", "hld", or an LLD title
+    // (case-insensitive).
+    async findDoc(userId: string, projectId: string, ref: string): Promise<ContextDoc> {
+      const key = String(ref ?? '').trim()
+      if (!key) throw new CtxValidationError('Name a document')
+      const { project, entries } = await getToc(userId, projectId)
+      const lower = key.toLowerCase()
+      let id: string | undefined
+      if (entries.some((e) => e.id === key)) id = key
+      else if (lower === 'schema' || lower === 'database schema') id = project.schemaId
+      else if (lower === 'hld' || lower === 'high-level design') id = project.hldId
+      else {
+        const matches = entries.filter((e) => e.title.toLowerCase() === lower)
+        if (matches.length > 1) {
+          throw new CtxValidationError(
+            `${matches.length} documents are titled “${key}”. Use an id: ${matches.map((e) => e.id).join(', ')}`
+          )
+        }
+        id = matches[0]?.id
+      }
+      if (!id) throw new CtxNotFoundError(`Document “${key}” in ${project.name}`)
+      return requireDoc(userId, projectId, id)
+    },
+
+    // Replaces one exact passage. Fails unless oldText occurs exactly once, so
+    // an edit never lands in the wrong place. Same stale-save rule as updateDoc.
+    async replaceInDoc(
+      userId: string,
+      projectId: string,
+      docId: string,
+      oldText: string,
+      newText: string,
+      expectedUpdatedAt?: number
+    ): Promise<ContextDoc> {
+      const doc = await requireDoc(userId, projectId, docId)
+      if (typeof oldText !== 'string' || oldText.length === 0) throw new CtxValidationError('old_text can’t be empty')
+      if (typeof newText !== 'string') throw new CtxValidationError('new_text must be text')
+      if (expectedUpdatedAt !== undefined && expectedUpdatedAt !== doc.updatedAt) throw new CtxStaleWriteError(doc)
+      const count = doc.body.split(oldText).length - 1
+      if (count === 0) throw new CtxValidationError('old_text was not found in the document. Read it again and copy the text exactly.')
+      if (count > 1) {
+        throw new CtxValidationError(`old_text appears ${count} times. Include more surrounding text so it matches once.`)
+      }
+      const i = doc.body.indexOf(oldText)
+      const body = doc.body.slice(0, i) + newText + doc.body.slice(i + oldText.length)
+      return service.updateDoc(userId, projectId, docId, { body, expectedUpdatedAt: doc.updatedAt })
+    },
   }
+  return service
 }
 
 export type ContextService = ReturnType<typeof createContextService>
