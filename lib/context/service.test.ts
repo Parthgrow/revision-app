@@ -167,3 +167,51 @@ describe('sortToc', () => {
     )
   })
 })
+
+describe('lookups for the Claude connector', () => {
+  it('finds a project by id or case-insensitive name, and reports ambiguity', async () => {
+    const a = await svc.createProject(U, { name: 'MindGym' })
+    expect((await svc.findProject(U, a.id)).id).toBe(a.id)
+    expect((await svc.findProject(U, '  mindgym ')).id).toBe(a.id)
+    await expect(svc.findProject(U, 'nope')).rejects.toBeInstanceOf(CtxNotFoundError)
+    await svc.createProject(U, { name: 'mindGYM' })
+    await expect(svc.findProject(U, 'MindGym')).rejects.toBeInstanceOf(CtxValidationError)
+  })
+
+  it('finds documents by id, schema/hld, or LLD title', async () => {
+    const p = await svc.createProject(U, { name: 'A' })
+    const l = await svc.addLld(U, p.id, { title: 'Graph view' })
+    expect((await svc.findDoc(U, p.id, 'schema')).id).toBe(p.schemaId)
+    expect((await svc.findDoc(U, p.id, 'Database schema')).id).toBe(p.schemaId)
+    expect((await svc.findDoc(U, p.id, 'HLD')).id).toBe(p.hldId)
+    expect((await svc.findDoc(U, p.id, 'graph VIEW')).id).toBe(l.id)
+    expect((await svc.findDoc(U, p.id, l.id)).id).toBe(l.id)
+    await expect(svc.findDoc(U, p.id, 'Auth')).rejects.toBeInstanceOf(CtxNotFoundError)
+    await svc.addLld(U, p.id, { title: 'graph view' })
+    await expect(svc.findDoc(U, p.id, 'Graph view')).rejects.toBeInstanceOf(CtxValidationError)
+  })
+
+  it('does not find a document from another project by id', async () => {
+    const a = await svc.createProject(U, { name: 'A' })
+    const b = await svc.createProject(U, { name: 'B' })
+    await expect(svc.findDoc(U, b.id, a.hldId)).rejects.toBeInstanceOf(CtxNotFoundError)
+  })
+
+  it('replaces exactly one passage', async () => {
+    const p = await svc.createProject(U, { name: 'A' })
+    await svc.updateDoc(U, p.id, p.hldId, { body: '## Goals\n- fast\n\n## Risks\n- fast\n' })
+    await expect(svc.replaceInDoc(U, p.id, p.hldId, '- fast', '- quick')).rejects.toThrow(/appears 2 times/)
+    await expect(svc.replaceInDoc(U, p.id, p.hldId, 'missing', 'x')).rejects.toThrow(/not found/)
+    const d = await svc.replaceInDoc(U, p.id, p.hldId, '## Risks\n- fast', '## Risks\n- slow cold starts')
+    expect(d.body).toBe('## Goals\n- fast\n\n## Risks\n- slow cold starts\n')
+  })
+
+  it('refuses a passage edit based on an old version', async () => {
+    const p = await svc.createProject(U, { name: 'A' })
+    const read = await svc.getDoc(U, p.id, p.hldId)
+    await svc.updateDoc(U, p.id, p.hldId, { body: read.body + '\nedited in the browser' })
+    await expect(
+      svc.replaceInDoc(U, p.id, p.hldId, '## Goals', '## Aims', read.updatedAt)
+    ).rejects.toBeInstanceOf(CtxStaleWriteError)
+  })
+})
