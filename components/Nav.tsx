@@ -18,6 +18,7 @@ export default function Nav() {
     { href: '/zk', label: 'Notes' },
     { href: '/context', label: 'Context' },
     { href: '/mp', label: 'Palace' },
+    { href: '/palaces', label: 'Palace Network' },
     { href: '/add', label: 'Add' },
   ]
 
@@ -29,7 +30,7 @@ export default function Nav() {
         shrink-0 border-b border-[var(--rule)]
         px-6 py-4
         flex flex-row flex-wrap items-baseline gap-x-4 gap-y-2
-        sm:w-[168px] sm:min-h-screen sm:border-b-0 sm:border-r
+        sm:w-[188px] sm:min-h-screen sm:border-b-0 sm:border-r
         sm:px-7 sm:py-10 sm:flex-col sm:items-stretch sm:gap-0
       "
     >
@@ -48,7 +49,7 @@ export default function Nav() {
               key={l.href}
               href={l.href}
               aria-current={active ? 'page' : undefined}
-              className={`text-[15px] sm:text-[16px] no-underline transition-colors duration-150 sm:flex sm:items-baseline ${
+              className={`text-[15px] sm:text-[16px] no-underline whitespace-nowrap transition-colors duration-150 sm:flex sm:items-baseline ${
                 active
                   ? 'text-[var(--ink)] font-semibold'
                   : 'text-[var(--ink-3)] hover:text-[var(--ink)]'

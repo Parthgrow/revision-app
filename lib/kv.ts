@@ -19,7 +19,11 @@ export type Item = {
   repetitions: number
   dueDate: number
   noteId?: string // set when the item was created from a Zettelkasten note
+  palaceId?: string // the Memory Palace Network palace this card is placed in
 }
+
+// Shared with lib/palaces, which writes cards inside its own transactions.
+export const itemKey = (userId: string, itemId: string) => `item:${userId}:${itemId}`
 
 export type MpStatus = 'prep' | 'memorize' | 'add-revision'
 

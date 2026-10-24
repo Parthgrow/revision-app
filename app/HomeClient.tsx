@@ -11,13 +11,18 @@ type Item = {
   repetitions: number
   dueDate: number
   noteId?: string
+  palaceId?: string
 }
 
 type Streak = { current: number }
 
+// A Memory Palace Network palace, for placing cards.
+type PalaceOption = { id: string; name: string; networkAlphabet: string }
+
 type Props = {
   items: Item[]
   streak: Streak
+  palaces: PalaceOption[]
 }
 
 // No colour to spend, so the four ratings order themselves by ink weight.
@@ -36,12 +41,34 @@ function formatDue(dueDate: number): { text: string; due: boolean } {
   return { text: `+${days} d`, due: false }
 }
 
-export default function HomeClient({ items: initialItems, streak }: Props) {
+export default function HomeClient({ items: initialItems, streak, palaces }: Props) {
   const [items, setItems] = useState<Item[]>(initialItems)
   const [openId, setOpenId] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [placing, setPlacing] = useState(false)
+  const [placeError, setPlaceError] = useState<string | null>(null)
 
   const open = items.find((i) => i.id === openId) ?? null
+  const palaceById = new Map(palaces.map((p) => [p.id, p]))
+  // A palace holds one card, so a card can go into a free palace or stay where it is.
+  const occupiedBy = new Map(items.filter((i) => i.palaceId).map((i) => [i.palaceId!, i.id]))
+
+  async function placeCard(itemId: string, palaceId: string | null) {
+    setPlacing(true)
+    setPlaceError(null)
+    const res = await fetch(`/api/items/${itemId}/palace`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ palaceId }),
+    })
+    const data = await res.json().catch(() => ({}))
+    setPlacing(false)
+    if (!res.ok) {
+      setPlaceError(data.error ?? 'Couldn’t place the card. Try again.')
+      return
+    }
+    setItems((prev) => prev.map((i) => (i.id === itemId ? { ...i, palaceId: (data as Item).palaceId } : i)))
+  }
 
   // Escape closes the panel — it's a drawer, not a page.
   useEffect(() => {
@@ -130,7 +157,17 @@ export default function HomeClient({ items: initialItems, streak }: Props) {
                   isOpen ? 'is-open shadow-[inset_2px_0_0_var(--ink)]' : ''
                 }`}
               >
-                <span className="text-[16px] leading-snug truncate">{item.content}</span>
+                <span className="flex items-baseline gap-2.5 min-w-0">
+                  {item.palaceId && palaceById.get(item.palaceId) && (
+                    <span
+                      className="shrink-0 ctx-mono text-[12px] leading-none px-1.5 py-1 border border-[var(--ink-3)] text-[var(--ink)]"
+                      title={`In palace: ${palaceById.get(item.palaceId)!.name}`}
+                    >
+                      {palaceById.get(item.palaceId)!.networkAlphabet}
+                    </span>
+                  )}
+                  <span className="text-[16px] leading-snug truncate">{item.content}</span>
+                </span>
                 <span
                   className={`text-[15px] text-right ${
                     due.due ? 'text-[var(--ink)] font-semibold' : 'text-[var(--ink-3)]'
@@ -185,6 +222,42 @@ export default function HomeClient({ items: initialItems, streak }: Props) {
                   Open note →
                 </Link>
               )}
+
+              {/* Place the card in a Memory Palace Network palace (one card per palace). */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="card-palace" className="smallcaps">
+                  Palace
+                </label>
+                {palaces.length === 0 ? (
+                  <p className="text-[14px] text-[var(--ink-3)]">
+                    No palaces yet.{' '}
+                    <Link href="/palaces" className="underline underline-offset-4 decoration-[var(--rule)] hover:decoration-[var(--ink)]">
+                      Build your Memory Palace Network
+                    </Link>
+                  </p>
+                ) : (
+                  <select
+                    id="card-palace"
+                    value={open.palaceId ?? ''}
+                    disabled={placing}
+                    onChange={(e) => placeCard(open.id, e.target.value || null)}
+                    className="bg-[var(--paper)] border border-[var(--rule)] px-3 py-2 text-[15px] text-[var(--ink)] disabled:opacity-50"
+                  >
+                    <option value="">Not placed</option>
+                    {palaces.map((p) => {
+                      const holder = occupiedBy.get(p.id)
+                      const taken = !!holder && holder !== open.id
+                      return (
+                        <option key={p.id} value={p.id} disabled={taken}>
+                          [{p.networkAlphabet}] {p.name}
+                          {taken ? ' (occupied)' : ''}
+                        </option>
+                      )
+                    })}
+                  </select>
+                )}
+                {placeError && <p className="text-[13px] text-[var(--ink-2)]">{placeError}</p>}
+              </div>
             </div>
 
             <div className="px-7 pb-7 flex flex-col gap-4">
