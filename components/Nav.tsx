@@ -65,9 +65,19 @@ export default function Nav() {
         })}
       </div>
 
+      <Link
+        href="/settings"
+        aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
+        className={`text-[14px] no-underline transition-colors duration-150 sm:mt-auto ${
+          pathname.startsWith('/settings') ? 'text-[var(--ink)] font-semibold' : 'text-[var(--ink-3)] hover:text-[var(--ink)]'
+        }`}
+      >
+        Connect Claude
+      </Link>
+
       <button
         onClick={logout}
-        className="ml-auto sm:ml-0 sm:mt-auto whitespace-nowrap text-left text-[14px] text-[var(--ink-4)] bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-[var(--ink-2)]"
+        className="ml-auto sm:ml-0 sm:mt-3 whitespace-nowrap text-left text-[14px] text-[var(--ink-4)] bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-[var(--ink-2)]"
       >
         Sign out
       </button>
