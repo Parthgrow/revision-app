@@ -1,0 +1,79 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+
+export type NavLink = { href: string; label: string }
+
+// The margin nav shared by every app; each passes its brand and sections.
+export default function SideNav({ brand, links }: { brand: string; links: NavLink[] }) {
+  const pathname = usePathname()
+  const router = useRouter()
+
+  async function logout() {
+    await fetch('/api/auth/logout', { method: 'POST' })
+    router.push('/login')
+  }
+
+  return (
+    // A margin, not a panel: one vertical rule, no fill, so the page stays a
+    // single sheet. Becomes a strip along the top on small screens.
+    <nav
+      className="
+        shrink-0 border-b border-[var(--rule)]
+        px-6 py-4
+        flex flex-row flex-wrap items-baseline gap-x-4 gap-y-2
+        sm:w-[188px] sm:min-h-screen sm:border-b-0 sm:border-r
+        sm:px-7 sm:py-10 sm:flex-col sm:items-stretch sm:gap-0
+      "
+    >
+      <Link
+        href="/"
+        className="text-[17px] sm:text-[18px] font-semibold tracking-[-0.01em] text-[var(--ink)] no-underline sm:mb-7"
+      >
+        {brand}
+      </Link>
+
+      <div className="flex flex-row flex-wrap items-baseline gap-x-3.5 gap-y-1 sm:flex-col sm:items-stretch sm:gap-1">
+        {links.map((l) => {
+          const active = l.href === '/' ? pathname === '/' : pathname.startsWith(l.href)
+          return (
+            <Link
+              key={l.href}
+              href={l.href}
+              aria-current={active ? 'page' : undefined}
+              className={`text-[15px] sm:text-[16px] no-underline whitespace-nowrap transition-colors duration-150 sm:flex sm:items-baseline ${
+                active
+                  ? 'text-[var(--ink)] font-semibold'
+                  : 'text-[var(--ink-3)] hover:text-[var(--ink)]'
+              }`}
+            >
+              {/* Fixed-width marker so the labels stay on one baseline grid. */}
+              <span aria-hidden className="hidden sm:inline-block w-4 text-[var(--ink-4)]">
+                {active ? '—' : ''}
+              </span>
+              {l.label}
+            </Link>
+          )
+        })}
+      </div>
+
+      <Link
+        href="/settings"
+        aria-current={pathname.startsWith('/settings') ? 'page' : undefined}
+        className={`text-[14px] no-underline transition-colors duration-150 sm:mt-auto ${
+          pathname.startsWith('/settings') ? 'text-[var(--ink)] font-semibold' : 'text-[var(--ink-3)] hover:text-[var(--ink)]'
+        }`}
+      >
+        Connect Claude
+      </Link>
+
+      <button
+        onClick={logout}
+        className="ml-auto sm:ml-0 sm:mt-3 whitespace-nowrap text-left text-[14px] text-[var(--ink-4)] bg-transparent border-none cursor-pointer transition-colors duration-150 hover:text-[var(--ink-2)]"
+      >
+        Sign out
+      </button>
+    </nav>
+  )
+}

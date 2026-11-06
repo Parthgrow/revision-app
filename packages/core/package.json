@@ -1,0 +1,41 @@
+{
+  "name": "@revision-app/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared accounts, Context documents and the Claude connector, used by MindGym and ContextMagic.",
+  "type": "module",
+  "exports": {
+    "./auth": "./src/auth.ts",
+    "./users": "./src/users.ts",
+    "./context": "./src/context/index.ts",
+    "./context/*": "./src/context/*.ts",
+    "./mcp/*": "./src/mcp/*.ts",
+    "./routes/*": "./src/routes/*.ts",
+    "./pages/frame": "./src/pages/frame.ts",
+    "./pages/*": "./src/pages/*.tsx",
+    "./ui/*": "./src/ui/*.tsx",
+    "./styles/*": "./styles/*"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "@vercel/kv": "^3.0.0",
+    "jose": "^6.1.3",
+    "nanoid": "^5.1.6",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6"
+  }
+}

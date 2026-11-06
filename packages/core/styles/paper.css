@@ -1,0 +1,92 @@
+/* Ledger. A printed table, not a screen: paper ground, ink, rules, and a warm
+   wash for state. No accent colour anywhere — emphasis is weight and darkness.
+   Deliberately single-theme; paper only works as paper. */
+:root {
+  --paper: #fbfaf7;
+  --paper-2: #f7f4ee;   /* alternating row — the ruled-ledger trick */
+  --paper-3: #f0ece2;   /* selected / hover wash */
+
+  --rule: #ded8cc;      /* hairlines */
+  --rule-ink: #1f1d1a;  /* masthead + column-head underline */
+
+  --ink: #211f1c;
+  --ink-2: #5c574e;
+  --ink-3: #8a8275;
+  --ink-4: #b3a998;
+
+  /* Aliases so any reference left from the old dark theme resolves to
+     something sane on paper rather than to nothing. */
+  --bg: var(--paper);
+  --bg-card: var(--paper-2);
+  --bg-elevated: var(--paper-3);
+  --border: var(--rule);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-2);
+  --text-muted: var(--ink-3);
+  --accent: var(--ink);
+  --accent-hover: #000000;
+}
+
+/* In the base layer so Tailwind's spacing utilities (px-6, py-10, ...) can
+   override it — unlayered, this reset beat every utility class. */
+@layer base {
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+.font-serif {
+  font-family: 'Source Serif 4', Georgia, serif;
+}
+
+::selection {
+  background: var(--paper-3);
+  color: var(--ink);
+}
+
+input, textarea, button, select {
+  font-family: inherit;
+  font-variant-numeric: inherit;
+}
+
+:focus-visible {
+  outline: 1px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Column heads and key hints. Small caps + tracking is the printed-table
+   device — it lets a label recede without going pale. */
+.smallcaps {
+  font-variant: small-caps;
+  letter-spacing: 0.09em;
+  font-size: 0.78rem;
+  color: var(--ink-3);
+}
+
+/* Ruled paper: rows carry no rules of their own, an alternating wash does the
+   tracking instead. Twenty dark hairlines on cream reads as a cage. */
+.ledger > .row:nth-child(even) {
+  background: var(--paper-2);
+}
+.ledger > .row:hover {
+  background: var(--paper-3);
+}
+/* The open row must beat the alternating wash, so it lives here rather than as
+   a utility class that nth-child would fight. */
+.ledger > .row.is-open,
+.ledger > .row.is-open:hover {
+  background: var(--paper-3);
+}
+

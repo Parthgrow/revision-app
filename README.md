@@ -1,36 +1,58 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# revision-app
 
-## Getting Started
+Two apps on one codebase and one database:
 
-First, run the development server:
+| App | Folder | What it is |
+| --- | --- | --- |
+| **MindGym** | `apps/mindgym` | Spaced repetition, Zettelkasten notes, memory palaces — and Context |
+| **ContextMagic** | `apps/contextmagic` | Context on its own: schema, HLD and LLDs that Claude can read and edit |
+| core | `packages/core` | Shared code: accounts, Context documents, the Claude (MCP) connector, shared UI and styles |
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+Both apps use the same Redis (Vercel KV) database and the same `JWT_SECRET`,
+so one account works in both, and a project made in one shows up in the
+other. A connector token generated in either app works against either app's
+`/api/mcp` URL.
+
+## Layout
+
+```
+apps/
+  mindgym/        Next.js app (review, notes, palaces, context, settings)
+  contextmagic/   Next.js app (context, settings, sign-in)
+packages/
+  core/
+    src/auth.ts, users.ts   sessions and accounts
+    src/context/            Context documents: service, repository, templates
+    src/mcp/                Claude connector: tokens, tools, HTTP handler
+    src/routes/             API handlers; each app's route.ts re-exports them
+    src/pages/              shared pages; each app wraps them in its own nav
+    src/ui/                 shared components (AuthForm, SideNav, Context UI)
+    styles/                 paper.css (tokens, reset), context.css (docs, print)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Apps import shared code as `@revision-app/core/…`. The package ships
+TypeScript source, and each app compiles it (`transpilePackages`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Development
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm install                 # once, at the repo root
+npm run dev:mindgym         # http://localhost:3000
+npm run dev:contextmagic    # http://localhost:3001
+npm test                    # all unit tests (vitest)
+npm run typecheck
+npm run lint
+```
 
-## Learn More
+Both apps need `KV_REST_API_URL`, `KV_REST_API_TOKEN` and `JWT_SECRET`
+(e.g. in `apps/<app>/.env.local`).
 
-To learn more about Next.js, take a look at the following resources:
+## Deploying on Vercel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+One Vercel project per app, both pointing at this repository:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **MindGym**: Root Directory `apps/mindgym`
+- **ContextMagic**: Root Directory `apps/contextmagic`
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+In both projects, connect the same KV / Redis store (Storage → Connect
+Project) and set the same `JWT_SECRET`.
