@@ -5,7 +5,9 @@ const PUBLIC_PATHS = ['/login', '/register']
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
+  const isAuthPage = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
+  // The landing page is public; app/page.tsx sends signed-in visitors on to /context.
+  const isPublic = isAuthPage || pathname === '/'
 
   const token = req.cookies.get('session')?.value
   const session = token ? await verifyToken(token) : null
@@ -14,7 +16,7 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  if (session && isPublic) {
+  if (session && isAuthPage) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
