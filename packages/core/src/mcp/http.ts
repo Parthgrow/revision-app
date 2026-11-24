@@ -1,7 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { WebStandardStreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js'
 import { ctx } from '../context'
+import { tracker } from '../tracker'
 import { registerContextTools } from './tools'
+import { registerTrackerTools, TRACKER_INSTRUCTIONS } from './tracker-tools'
 
 // Public origin of the app, for links back to documents in tool results.
 export function appOrigin(req: Request): string {
@@ -13,8 +15,9 @@ export function appOrigin(req: Request): string {
 // Stateless Streamable HTTP: a fresh server per request keeps it
 // serverless-friendly, with no sessions shared between instances.
 export async function handleMcpRequest(req: Request, userId: string): Promise<Response> {
-  const server = new McpServer({ name: 'contextmagic', version: '0.1.0' })
+  const server = new McpServer({ name: 'contextmagic', version: '0.1.0' }, { instructions: TRACKER_INSTRUCTIONS })
   registerContextTools(server, { userId, service: ctx, appUrl: appOrigin(req) })
+  registerTrackerTools(server, { userId, service: tracker })
 
   const transport = new WebStandardStreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
