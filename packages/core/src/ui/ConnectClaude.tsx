@@ -98,7 +98,8 @@ export default function ConnectClaude({ initial, mcpUrl, email, max }: Props) {
       <p className="text-[16px] text-[var(--ink-2)] max-w-[62ch]">
         Generate a token so Claude can read and edit the Context projects of{' '}
         <span className="text-[var(--ink)] font-semibold">{email}</span>: list projects, read documents, create
-        projects and LLDs, and edit the schema, HLD and LLDs. Deleting stays here in the app. Anyone with a token has
+        projects and LLDs, edit the schema, HLD and LLDs, and report its work to AgentTracker. Deleting stays here in
+        the app. Anyone with a token has
         that access, so treat it like a password.
       </p>
 

@@ -2,9 +2,11 @@ import { headers } from 'next/headers'
 import { getSession } from '../auth'
 import { mcpTokens, MAX_TOKENS_PER_USER } from '../mcp/tokens'
 import ConnectClaude from '../ui/ConnectClaude'
+import type { ReactNode } from 'react'
 import type { PageFrame } from './frame'
 
-export default async function SettingsPage({ Frame }: { Frame: PageFrame }) {
+// `children` lets an app add its own sections below the connector setup.
+export default async function SettingsPage({ Frame, children }: { Frame: PageFrame; children?: ReactNode }) {
   const session = await getSession()
   if (!session) return null
 
@@ -20,6 +22,7 @@ export default async function SettingsPage({ Frame }: { Frame: PageFrame }) {
         email={session.email}
         max={MAX_TOKENS_PER_USER}
       />
+      {children}
     </Frame>
   )
 }

@@ -1,6 +1,9 @@
 import SideNav from '@revision-app/core/ui/SideNav'
 
-const links = [{ href: '/context', label: 'Projects' }]
+const links = [
+  { href: '/context', label: 'Projects' },
+  { href: '/agents', label: 'Agents' },
+]
 
 export default function Nav() {
   return <SideNav brand="ContextMagic" links={links} />
